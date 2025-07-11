@@ -992,6 +992,52 @@ def animate_BI_PSR(df0, df):
 
   st.plotly_chart(fig)
 
+def animate_CI_CVAI(df0, df):
+  colors = [
+    '#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FF8C33', '#33FFF1', '#8C33FF', '#FF5733', '#57FF33', '#5733FF',
+    '#FF3357', '#33FFA1', '#FFA133', '#33FF8C', '#FF338C', '#8CFF33', '#A1FF33', '#338CFF', '#A133FF', '#33A1FF'
+  ]
+
+  #df0 = df.drop_duplicates('ダミーID', keep='first')
+
+  df1 = df.drop_duplicates('ダミーID', keep='last')
+
+  common_patients = set(df1['ダミーID'].unique()) & (set(df0['ダミーID'].unique()))
+
+  df = pd.concat([df0, df1])
+  df = df[df['ダミーID'].isin(common_patients)]
+
+  #複数のヘルメットを使用している患者を除外
+  df_helmet = df[df['ヘルメット'] != '経過観察']
+  helmet_counts = df_helmet.groupby('ダミーID')['ヘルメット'].nunique()
+  common_patients = helmet_counts[helmet_counts > 1].index.tolist()
+
+  df = df[~df['ダミーID'].isin(common_patients)]
+
+  fig = px.scatter(df, x='CI', y='CA', color='治療前CVAI重症度', symbol='治療前短頭症', facet_col = 'ヘルメット',
+                   hover_data=['ダミーID', '治療期間', '治療前月齢', 'ヘルメット'] + parameters, category_orders=category_orders, animation_frame='治療ステータス', animation_group='ダミーID', color_discrete_sequence=colors)
+  i=0
+  for i in range(len(df['ヘルメット'].unique())):
+    #短頭率の正常範囲
+    fig.add_trace(go.Scatter(x=[80, 80], y=[df['CVAI'].min(), 100], mode='lines', line=dict(color='gray', dash = 'dot'), name='CI正常下限'), row=1, col=i+1)
+    fig.add_trace(go.Scatter(x=[94, 94], y=[df['CVAI'].min(), 100], mode='lines', line=dict(color='gray', dash = 'dot'), name='CI正常上限'), row=1, col=i+1)
+
+    #CVAIの正常範囲
+    fig.add_trace(go.Scatter(x=[df['CI'].min(), df['CI'].max()], y=[5, 5], mode='lines', line=dict(color='gray', dash = 'dot'), name='CVAI正常下限'), row=1, col=i+1)
+
+  fig.update_xaxes(range = [df['CI'].min()-2,df['CI'].max()+2])
+  fig.update_yaxes(range = [-2,df['CVAI'].max()])
+
+  #width = 800*(i+1)
+  width = 800*len(df['ヘルメット'].unique())
+
+  fig.update_layout(height=800, width=width, title='CIとCVAIの治療前後の変化')
+
+  for annotation in fig.layout.annotations:
+    annotation.text = annotation.text.split('=')[-1]
+
+  st.plotly_chart(fig)
+
 levels = {'短頭率':'治療前短頭症',
           '前頭部対称率':'治療前ASRレベル',
           'CA':'治療前CA重症度',
@@ -1373,6 +1419,9 @@ if submit_button:
 
     st.write('▶を押すと治療前後の変化が見られます。')
     animate_BI_PSR(filtered_df0, filtered_df)
+    st.markdown("---")
+
+    animate_CI_CVAI(filtered_df0, filtered_df)
     st.markdown("---")
 
     animate_hc(filtered_df0, filtered_df)
