@@ -1014,7 +1014,7 @@ def animate_CI_CVAI(df0, df):
 
   df = df[~df['ダミーID'].isin(common_patients)]
 
-  fig = px.scatter(df, x='CI', y='CA', color='治療前CVAI重症度', symbol='治療前短頭症', facet_col = 'ヘルメット',
+  fig = px.scatter(df, x='CI', y='CVAI', color='治療前CVAI重症度', symbol='治療前短頭症', facet_col = 'ヘルメット',
                    hover_data=['ダミーID', '治療期間', '治療前月齢', 'ヘルメット'] + parameters, category_orders=category_orders, animation_frame='治療ステータス', animation_group='ダミーID', color_discrete_sequence=colors)
   i=0
   for i in range(len(df['ヘルメット'].unique())):
