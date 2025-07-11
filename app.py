@@ -645,7 +645,7 @@ def graham(df, parameter, border=False, x_limit=False):
 
   #表示範囲の設定
   if parameter == 'CVAI':
-    min, max = 0, 18
+    min, max = 0, 19
 
   elif parameter == 'CA':
     min, max = 0, 25
