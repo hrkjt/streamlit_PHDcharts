@@ -281,6 +281,38 @@ def show_helmet_proportion():
   # Streamlitアプリにグラフを表示
   st.plotly_chart(fig)
 
+def show_age_proportion(df):
+  df_fig = df.copy()
+
+  df_age = pd.DataFrame()
+  
+  df_young = df_fig[df_fig['治療前月齢'] < 3]
+  df_young['治療前月齢'] = '-2'
+
+  df_age = pd.concat([df_age, df_young])
+
+  for i in range(3, 12):
+    df_temp = df_fig[(df_fig['治療前月齢'] >= i) & (df_fig['治療前月齢'] < i+1)]
+    df_temp['治療前月齢'] = str(i)
+    df_age = pd.concat([df_age, df_temp])
+
+  df_old = df_fig[df_fig['治療前月齢'] >= 12]
+  df_old['治療前月齢'] = '12-'
+  
+  df_age = pd.concat([df_age, df_old])
+
+  
+  # ヘルメットの種類ごとに行の数を集計
+  counts = df_age['治療前月齢'].value_counts().reset_index()
+  counts.columns = ['治療前月齢', '数']
+
+  # 円グラフ作成
+  fig = px.pie(counts, names='治療前月齢', values='数')
+  fig.update_layout(width=900, title='治療前月齢の割合')
+
+  # Streamlitアプリにグラフを表示
+  st.plotly_chart(fig)
+
 def takamatsu(df, brachy=False):
   df_analysis = df.copy()
   df_analysis['ASR'] = df_analysis['前頭部対称率']
@@ -1306,6 +1338,9 @@ for parameter in parameters:
   st.markdown("---")
 
 show_helmet_proportion()
+st.markdown("---")
+
+show_age_proportion(df_tx_pre_post)
 st.markdown("---")
 
 st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">月齢・重症度別の治療前後の変化</div>', unsafe_allow_html=True)
