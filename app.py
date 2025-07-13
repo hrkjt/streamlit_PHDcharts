@@ -301,9 +301,12 @@ def show_age_proportion(df):
   
   df_age = pd.concat([df_age, df_old])
 
-  
-  # ヘルメットの種類ごとに行の数を集計
-  counts = df_age['治療前月齢'].value_counts().reset_index()
+  # 月齢の順序リストを定義
+  age_order = ['-2'] + [str(i) for i in range(3, 12)] + ['12-']
+  df_age['治療前月齢'] = pd.Categorical(df_age['治療前月齢'], categories=age_order, ordered=True)
+
+  # カウント＆整列
+  counts = df_age['治療前月齢'].value_counts().sort_index().reset_index()
   counts.columns = ['治療前月齢', '数']
 
   # 円グラフ作成
