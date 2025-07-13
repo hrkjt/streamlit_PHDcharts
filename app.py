@@ -948,7 +948,8 @@ def graham_hc(df, border=False, x_limit=False):
   fig.update_yaxes(gridcolor='lightgray')
 
   #return(fig)
-  st.plotly_chart(fig)
+  import uuid
+  st.plotly_chart(fig, key=str(uuid.uuid4()))
 
 def animate_BI_PSR(df0, df):
   colors = [
