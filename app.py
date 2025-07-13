@@ -310,7 +310,7 @@ def show_age_proportion(df):
   counts.columns = ['治療前月齢', '数']
 
   # 円グラフ作成
-  fig = px.pie(counts, names='治療前月齢', values='数')
+  fig = px.pie(counts, names='治療前月齢', values='数', category_orders={'治療前月齢': age_order})
   fig.update_layout(width=900, title='治療前月齢の割合')
 
   # Streamlitアプリにグラフを表示
