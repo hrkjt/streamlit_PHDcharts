@@ -71,7 +71,7 @@ fig.update_layout(height=900,width = 1600,  #16:9に、
                   font_size=20
                   )
 
-fig.show()
+st.plotly_chart(fig)
 
 treated_patients = df_h['ダミーID'].unique()
 df_first = df[df['治療ステータス'] == '治療前'].drop_duplicates('ダミーID')
