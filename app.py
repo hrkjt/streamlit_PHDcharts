@@ -71,7 +71,7 @@ fig.update_layout(height=900,width = 1600,  #16:9に、
                   font_size=20
                   )
 
-st.plotly_chart(fig)
+# st.plotly_chart(fig)
 
 treated_patients = df_h['ダミーID'].unique()
 df_first = df[df['治療ステータス'] == '治療前'].drop_duplicates('ダミーID')
@@ -1368,6 +1368,8 @@ formatted_date = yesterday.strftime("%Y年%m月%d日")
 
 st.markdown(f'<div style="text-align: left; color:black; font-size:18px;">以下のグラフは2021年03月04日から{formatted_date}までのデータにもとづいています</div>', unsafe_allow_html=True)
 #st.write('以下のグラフは2021年03月04日から' + formatted_date + 'までのデータにもとづいています')
+
+st.plotly_chart(fig)
 
 st.write('')
 st.write('')
