@@ -33,6 +33,46 @@ df = df.sort_values('月齢')
 df_h = pd.DataFrame(data['ヘルメット'])
 df_h = df_h[(df_h['ダミーID'] != '') & (df_h['ヘルメット'] != '')]
 
+df_c = pd.DataFrame(data['患者数'])
+df_c['診察日'] = pd.to_datetime(df_c['診察日'], format='mixed')
+df_c = df_c.sort_values('診察日')
+df_c['患者総数'] = range(1, len(df_c) + 1)
+df_c['治療患者総数'] = ((df_c['発注有無'] == '発注済').astype(int)).cumsum()
+df_c['治療患者総数'] = df_c['治療患者総数'].where((df_c['発注有無'] == '発注済'), other=None).ffill()
+
+fig = go.Figure()
+
+# df_fig = df_fig[df_fig['診察日'] < '2025-10-01']
+df_fig = df_c.copy()
+
+fig.add_trace(go.Histogram(x = df_fig[df_fig['発注有無'] == '発注済']['診察日'], marker=dict(color='blue', opacity=0.75), name = '1月あたりの初診患者数（治療あり）', yaxis='y1'))
+fig.add_trace(go.Histogram(x = df_fig[df_fig['発注有無'] != '発注済']['診察日'], marker=dict(color='cyan', opacity=0.75), name = '1月あたりの初診患者数（治療なし）', yaxis='y1'))
+fig.add_trace(go.Scatter(x = df_fig['診察日'],  y = df_fig['治療患者総数'], mode = 'lines', marker=dict(color='blue'), name = '治療患者総数', yaxis='y2'))
+fig.add_trace(go.Scatter(x = df_fig['診察日'],  y = df_fig['患者総数'], mode = 'lines', marker=dict(color='cyan'), name = '患者総数', yaxis='y2'))
+
+fig.add_vline(x="2023-02-11", line_width=2, line_dash="dash", line_color="grey")  #関西院
+fig.add_vline(x="2024-03-17", line_width=2, line_dash="dash", line_color="grey")  #表参道院
+fig.add_vline(x="2025-03-14", line_width=2, line_dash="dash", line_color="grey")  #福岡院
+
+# レイアウトの指定
+fig.update_layout(height=900,width = 1600,  #16:9に、
+                  plot_bgcolor='white', #背景色を白に
+                  title_text='患者数の推移',
+                  xaxis = dict(type='date', dtick = 'M1'), # dtick: 1か月ごとは'M1'
+                  yaxis = dict(title = '人数（1月あたり）', side = 'left', showgrid=False, # ２軸だと見誤る場合があるので目盛り線は表示させない(showgrid=False)
+                               range = [0, 520]),    # rangeで指定したほうがよい。ゼロが合わない場合などがある。
+                  yaxis2 = dict(title = 'のべ患者数', side = 'right', overlaying = 'y', range = [0, max(df_fig['患者総数'])], showgrid=False),
+                  bargap = 0.2,
+                  barmode = 'stack',
+                  legend=dict(yanchor="top",
+                              y=0.99,
+                              xanchor="left",
+                              x=0.01),
+                  font_size=20
+                  )
+
+fig.show()
+
 treated_patients = df_h['ダミーID'].unique()
 df_first = df[df['治療ステータス'] == '治療前'].drop_duplicates('ダミーID')
 
