@@ -1431,6 +1431,47 @@ def animate_CI_CVAI_over_age(df_co):
       range=[70, 110]
   )
 
+  # ★ここから「月齢：0.0」アノテーション関連 ----------------------------
+  # 初期フレーム用（最小の月齢_frame）
+  initial_age = float(df_anim['月齢_frame'].min())
+  fig.update_layout(
+      annotations=[
+          dict(
+              x=0.02,
+              y=0.98,
+              xref='paper',
+              yref='paper',
+              showarrow=False,
+              font=dict(size=20, color='black'),
+              text=f"月齢：{initial_age:.1f}"
+          )
+      ]
+  )
+
+  # 各フレームにも、そのフレームの月齢を表示するアノテーションを仕込む
+  for frame in fig.frames:
+    try:
+      age_val = float(frame.name)
+    except ValueError:
+      # 念のため（frame.name が文字列っぽい時）
+      age_val = float(str(frame.name))
+
+    frame.layout = go.Layout(
+        annotations=[
+            dict(
+                x=0.90,
+                y=0.98,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=20, color='black'),
+                text=f"月齢：{age_val:.1f}"
+            )
+        ]
+    )
+  # ★ここまで ---------------------------------------------------------
+  
+  
   fig.update_layout(
       width=900,
       height=800,
