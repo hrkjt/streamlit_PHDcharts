@@ -1399,6 +1399,7 @@ def animate_CI_CVAI_over_age(df_co):
 
   # フレーム用に小数第1位に丸めた月齢を使う
   df_anim['月齢_frame'] = df_anim['月齢_interp'].round(1)
+  df_anim = df_anim.sort_values('月齢_frame')
 
   fig = px.scatter(
       df_anim,
@@ -1421,17 +1422,19 @@ def animate_CI_CVAI_over_age(df_co):
   # すべてのフレームで軸スケールを固定
   fig.update_xaxes(
       title='CVAI',
-      range=[df_anim['CVAI'].min() - 1, df_anim['CVAI'].max() + 1]
+      # range=[df_anim['CVAI'].min() - 1, df_anim['CVAI'].max() + 1]
+    range=[0, df_anim['CVAI'].max() + 1]
   )
   fig.update_yaxes(
       title='CI',
-      range=[df_anim['CI'].min() - 1, df_anim['CI'].max() + 1]
+      # range=[df_anim['CI'].min() - 1, df_anim['CI'].max() + 1]
+      range=[70, 110]
   )
 
   fig.update_layout(
       width=900,
       height=800,
-      title='CI–CVAI 経過観察（月齢 0.1 か月刻み補間）',
+      title='CI–CVAI 経過観察',
       plot_bgcolor='white'
   )
 
