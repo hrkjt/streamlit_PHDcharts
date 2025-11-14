@@ -1354,6 +1354,90 @@ def make_confusion_matrix(df, parameter):
 
   return(pivot_table_combined)
 
+def animate_CI_CVAI_over_age(df_co):
+  # 元データを整理
+  df = df_co.copy()
+  df = df.sort_values(['ダミーID', '月齢'])
+  df = df.dropna(subset=['月齢', 'CI', 'CVAI'])
+
+  interp_list = []
+
+  for dummy_id, g in df.groupby('ダミーID'):
+    # 時系列が 2 点未満の患者は補間できないのでスキップ
+    if g['月齢'].nunique() < 2:
+      continue
+
+    ages = g['月齢'].values
+    ci = g['CI'].values
+    cvai = g['CVAI'].values
+
+    # この患者の月齢範囲で 0.1 か月刻みの軸をつくる
+    age_new = np.arange(ages.min(), ages.max() + 1e-6, 0.1)
+
+    # CI / CVAI を線形補間
+    ci_new = np.interp(age_new, ages, ci)
+    cvai_new = np.interp(age_new, ages, cvai)
+
+    # 色・シンボル用の情報は最初の行から引き継ぐ
+    base = g.iloc[0]
+
+    interp_list.append(pd.DataFrame({
+        'ダミーID': dummy_id,
+        '月齢_interp': age_new,
+        'CI': ci_new,
+        'CVAI': cvai_new,
+        '治療前CVAI重症度': base['治療前CVAI重症度'],
+        '治療前短頭症': base['治療前短頭症'],
+        '治療前の月齢': base['治療前の月齢'],
+    }))
+
+  if len(interp_list) == 0:
+    st.write('補間できる患者がいません')
+    return
+
+  df_anim = pd.concat(interp_list, ignore_index=True)
+
+  # フレーム用に小数第1位に丸めた月齢を使う
+  df_anim['月齢_frame'] = df_anim['月齢_interp'].round(1)
+
+  fig = px.scatter(
+      df_anim,
+      x='CVAI',
+      y='CI',
+      animation_frame='月齢_frame',     # 月齢 0.1 刻みのフレーム
+      animation_group='ダミーID',       # 患者ごとに軌跡をつなぐ
+      color='治療前CVAI重症度',        # 色分け（お好みで変更可）
+      symbol='治療前短頭症',           # マーカー形状（お好みで変更可）
+      hover_data=['ダミーID', '月齢_interp', '治療前の月齢'],
+      category_orders=category_orders,
+      color_discrete_sequence=colors
+  )
+
+  # 正常範囲のガイドライン（不要なら削除）
+  fig.add_hline(y=80, line_dash='dot', line_color='gray', name='CI=80')
+  fig.add_hline(y=94, line_dash='dot', line_color='gray', name='CI=94')
+  fig.add_vline(x=5,  line_dash='dot', line_color='gray', name='CVAI=5')
+
+  # すべてのフレームで軸スケールを固定
+  fig.update_xaxes(
+      title='CVAI',
+      range=[df_anim['CVAI'].min() - 1, df_anim['CVAI'].max() + 1]
+  )
+  fig.update_yaxes(
+      title='CI',
+      range=[df_anim['CI'].min() - 1, df_anim['CI'].max() + 1]
+  )
+
+  fig.update_layout(
+      width=900,
+      height=800,
+      title='CI–CVAI 経過観察（月齢 0.1 か月刻み補間）',
+      plot_bgcolor='white'
+  )
+
+  st.plotly_chart(fig)
+
+
 ##関数パート終了
 
 st.markdown('<div style="text-align: left; color:black; font-size:36px; font-weight: bold;">位置的頭蓋変形の診療に関するデータビジュアライゼーション</div>', unsafe_allow_html=True)
@@ -1624,6 +1708,8 @@ if submit_button:
       st.write('経過観察した場合のグラフを表示します')
       count = len(filtered_df_co['ダミーID'].unique())
       st.write(str(count), '人')
+      st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">経過観察群の CI–CVAI の推移</div>', unsafe_allow_html=True)
+      animate_CI_CVAI_over_age(filtered_df_co)
       #st.dataframe(filtered_df_co, width=800)
       for parameter in parameters:
         st.write('')
