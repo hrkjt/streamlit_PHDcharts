@@ -1399,16 +1399,20 @@ def animate_CI_CVAI_over_age(df_co):
 
   # フレーム用に小数第1位に丸めた月齢を使う
   df_anim['月齢_frame'] = df_anim['月齢_interp'].round(1)
+
+  # ★ スライダー用の文字列ラベル（例： "0.0"）を用意
+  df_anim['月齢_label'] = df_anim['月齢_frame'].map(lambda x: f"{x:.1f}")
+
   df_anim = df_anim.sort_values('月齢_frame')
 
   fig = px.scatter(
       df_anim,
       x='CVAI',
       y='CI',
-      animation_frame='月齢_frame',     # 月齢 0.1 刻みのフレーム
+      animation_frame='月齢_label',     # ← ここを文字列カラムに
       animation_group='ダミーID',       # 患者ごとに軌跡をつなぐ
-      color='治療前CVAI重症度',        # 色分け（お好みで変更可）
-      symbol='治療前短頭症',           # マーカー形状（お好みで変更可）
+      color='治療前CVAI重症度',
+      symbol='治療前短頭症',
       hover_data=['ダミーID', '月齢_interp', '治療前の月齢'],
       category_orders=category_orders,
       color_discrete_sequence=colors
@@ -1422,60 +1426,24 @@ def animate_CI_CVAI_over_age(df_co):
   # すべてのフレームで軸スケールを固定
   fig.update_xaxes(
       title='CVAI',
-      # range=[df_anim['CVAI'].min() - 1, df_anim['CVAI'].max() + 1]
-    range=[0, df_anim['CVAI'].max() + 1]
+      range=[0, df_anim['CVAI'].max() + 1]
   )
   fig.update_yaxes(
       title='CI',
-      # range=[df_anim['CI'].min() - 1, df_anim['CI'].max() + 1]
       range=[70, 110]
   )
 
-  # ★ここから「月齢：0.0」アノテーション関連 ----------------------------
-  # 初期フレーム用（最小の月齢_frame）
-  initial_age = float(df_anim['月齢_frame'].min())
-  fig.update_layout(
-      annotations=[
-          dict(
-              x=0.02,
-              y=0.98,
-              xref='paper',
-              yref='paper',
-              showarrow=False,
-              font=dict(size=20, color='black'),
-              text=f"月齢：{initial_age:.1f}"
-          )
-      ]
-  )
+  # ★ スライダーの現在値表示に「月齢：」という prefix をつける
+  if fig.layout.sliders:
+    sliders = list(fig.layout.sliders)
+    sliders[0].currentvalue.prefix = "月齢："
+    sliders[0].currentvalue.font.size = 18
+    fig.update_layout(sliders=sliders)
 
-  # 各フレームにも、そのフレームの月齢を表示するアノテーションを仕込む
-  for frame in fig.frames:
-    try:
-      age_val = float(frame.name)
-    except ValueError:
-      # 念のため（frame.name が文字列っぽい時）
-      age_val = float(str(frame.name))
-
-    frame.layout = go.Layout(
-        annotations=[
-            dict(
-                x=0.90,
-                y=0.98,
-                xref='paper',
-                yref='paper',
-                showarrow=False,
-                font=dict(size=20, color='black'),
-                text=f"月齢：{age_val:.1f}"
-            )
-        ]
-    )
-  # ★ここまで ---------------------------------------------------------
-  
-  
   fig.update_layout(
       width=900,
       height=800,
-      title='CI–CVAI 経過観察',
+      title='CI–CVAI 経過観察（月齢 0.1 か月刻み補間）',
       plot_bgcolor='white'
   )
 
