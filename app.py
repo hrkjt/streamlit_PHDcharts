@@ -1406,11 +1406,11 @@ def animate_CI_CVAI_over_age(df_co):
       y='CI',
       animation_frame='月齢_frame',     # 月齢 0.1 刻みのフレーム
       animation_group='ダミーID',       # 患者ごとに軌跡をつなぐ
-      color='治療前CVAI重症度',        # 色分け（お好みで変更可）
-      symbol='治療前短頭症',           # マーカー形状（お好みで変更可）
-      hover_data=['ダミーID', '月齢_interp', '治療前の月齢'],
-      category_orders=category_orders,
-      color_discrete_sequence=colors
+      # color='治療前CVAI重症度',        # 色分け（お好みで変更可）
+      # symbol='治療前短頭症',           # マーカー形状（お好みで変更可）
+      # hover_data=['ダミーID', '月齢_interp', '治療前の月齢'],
+      # category_orders=category_orders,
+      # color_discrete_sequence=colors
   )
 
   # ★フレームを月齢の昇順にソート
