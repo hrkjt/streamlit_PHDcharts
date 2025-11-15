@@ -1413,6 +1413,19 @@ def animate_CI_CVAI_over_age(df_co):
       color_discrete_sequence=colors
   )
 
+  # ★フレームを月齢の昇順にソート
+  frames_sorted = sorted(fig.frames, key=lambda fr: float(fr.name))
+  fig.frames = tuple(frames_sorted)
+
+  # ★スライダーのステップも同じ順番にソートし、prefix を「月齢：」に
+  if fig.layout.sliders:
+      slider = fig.layout.sliders[0]
+      steps_sorted = sorted(slider.steps, key=lambda s: float(s['label']))
+      slider.steps = tuple(steps_sorted)
+      slider.currentvalue.prefix = "月齢："
+      slider.currentvalue.font.size = 18
+      fig.update_layout(sliders=[slider])
+  
   # 正常範囲のガイドライン（不要なら削除）
   fig.add_hline(y=80, line_dash='dot', line_color='gray', name='CI=80')
   fig.add_hline(y=94, line_dash='dot', line_color='gray', name='CI=94')
@@ -1430,6 +1443,24 @@ def animate_CI_CVAI_over_age(df_co):
     range=[70, 110]
   )
 
+  initial_age = float(frames_sorted[0].name)
+  # … fig.update_layout(annotations=[... "月齢：{initial_age:.1f}" ...])
+  
+  for frame in fig.frames:
+      age_val = float(frame.name)
+      frame.layout = go.Layout(
+          annotations=[dict(
+              x=0.02,
+              y=0.98,
+              xref='paper',
+              yref='paper',
+              showarrow=False,
+              font=dict(size=20, color='black'),
+              text=f"月齢：{age_val:.1f}"
+          )]
+      )
+
+  
   fig.update_layout(
       width=900,
       height=800,
