@@ -34,7 +34,7 @@ df_h = pd.DataFrame(data['ヘルメット'])
 df_h = df_h[(df_h['ダミーID'] != '') & (df_h['ヘルメット'] != '')]
 
 df_c = pd.DataFrame(data['患者数'])
-df_c['診察日'] = pd.to_datetime(df_c['診察日'], format='mixed')
+df_c['診察日'] = pd.to_datetime(df_c['診察日'], format='mixed', errors='coerce')
 df_c = df_c.sort_values('診察日')
 df_c['患者総数'] = range(1, len(df_c) + 1)
 df_c['治療患者総数'] = ((df_c['発注有無'] == '発注済').astype(int)).cumsum()
