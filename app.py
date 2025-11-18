@@ -1661,41 +1661,87 @@ def make_table(parameter, df, co = False):
   return (result)
 
 def make_confusion_matrix(df, parameter):
-  parameter_category_names = {'短頭率': '短頭症', '前頭部対称率':'ASRレベル', 'CA':'CA重症度', '後頭部対称率':'PSRレベル', 'CVAI':'CVAI重症度', 'CI':'短頭症'}
-  parameter_category_name = parameter_category_names[parameter]
+    # パラメータ → 重症度カテゴリ名
+    parameter_category_names = {
+        '短頭率': '短頭症',
+        '前頭部対称率': 'ASRレベル',
+        'CA': 'CA重症度',
+        '後頭部対称率': 'PSRレベル',
+        'CVAI': 'CVAI重症度',
+        'CI': '短頭症'
+    }
+    parameter_category_name = parameter_category_names[parameter]
 
-  order = category_orders['治療前'+parameter_category_name]
+    # 並べたい順序（category_orders がある場合は使う）
+    if '治療前' + parameter_category_name in category_orders:
+        order = category_orders['治療前' + parameter_category_name]
+    else:
+        # 念のためフォールバック（治療前カテゴリのユニーク値順）
+        order = sorted(df['治療前' + parameter_category_name].dropna().unique().tolist())
 
-  for_pivot_df = df.drop_duplicates('ダミーID')
+    # 1人1行にしてクロス集計
+    for_pivot_df = df.drop_duplicates('ダミーID')
 
-  pivot_table = for_pivot_df.pivot_table(index="治療前" + parameter_category_name, columns="最終" + parameter_category_name, aggfunc="size", fill_value=0)
+    pivot_table = for_pivot_df.pivot_table(
+        index="治療前" + parameter_category_name,
+        columns="最終" + parameter_category_name,
+        aggfunc="size",
+        fill_value=0
+    )
 
-  # 各行の合計を計算
-  pivot_table["Total"] = pivot_table.sum(axis=1)
+    # 各行の合計を計算
+    pivot_table["Total"] = pivot_table.sum(axis=1)
 
-  # 割合（行方向の合計で割る）
-  pivot_table_percentage = 2 * pivot_table.div(pivot_table.sum(axis=1), axis=0) * 100
+    # 割合（行方向の合計で割る）
+    pivot_table_percentage = 2 * pivot_table.div(pivot_table.sum(axis=1), axis=0) * 100
 
-  # % 付きの文字列に変換
-  pivot_table_percentage = pivot_table_percentage.round(1).astype(str) + "%"
+    # % 付きの文字列に変換
+    pivot_table_percentage = pivot_table_percentage.round(1).astype(str) + "%"
 
-  # 人数と割合を結合
-  pivot_table_combined = pivot_table.astype(str) + " (" + pivot_table_percentage + ")"
+    # 人数と割合を結合
+    pivot_table_combined = pivot_table.astype(str) + " (" + pivot_table_percentage + ")"
 
-  pivot_table_combined["Total"] = pivot_table["Total"].astype(str)
+    # Total 列は人数だけにしておく
+    pivot_table_combined["Total"] = pivot_table["Total"].astype(str)
 
-  df0 = df.drop_duplicates('ダミーID', keep='first').sort_values('ダミーID').reset_index(drop=True)
-  df1 = df.drop_duplicates('ダミーID', keep='last').sort_values('ダミーID').reset_index(drop=True)
-  df_delta = df0.copy()
-  df_delta['変化量'] = df1[parameter] - df0[parameter]
-  
-  pivot_table_combined['変化量'] = df_delta.groupby("治療前" + parameter_category_name)['変化量'].mean().round(2).astype(str) + " ± " + df_delta.groupby("治療前" + parameter_category_name)['変化量'].std().round(2).astype(str)
-  
-  pivot_table_combined = pivot_table_combined.reindex(index=order, columns=order + ["Total", "変化量"])
+    # --- 変化量（Δ）の計算 ---
+    df0 = df.drop_duplicates('ダミーID', keep='first').sort_values('ダミーID').reset_index(drop=True)
+    df1 = df.drop_duplicates('ダミーID', keep='last').sort_values('ダミーID').reset_index(drop=True)
 
-  pivot_table_combined = pivot_table_combined.fillna('0 (0.0%)')
+    df_delta = df0.copy()
+    df_delta['変化量'] = df1[parameter].values - df0[parameter].values
 
-  return(pivot_table_combined)
+    # groupby して mean ± SD を文字列に
+    delta_stats = df_delta.groupby("治療前" + parameter_category_name)['変化量'] \
+                          .agg(['mean', 'std'])
+
+    # 集計できなかったカテゴリを落とす（NaN のままにしたくない場合）
+    delta_stats = delta_stats.fillna(0)
+
+    # "平均 ± SD" の文字列を作る
+    delta_str = delta_stats['mean'].round(2).astype(str) + " ± " + delta_stats['std'].round(2).astype(str)
+
+    # index を揃えてから代入
+    # pivot_table_combined と delta_str は index=「治療前カテゴリ」
+    # なので、そのまま align して新しい列として入れる
+    pivot_table_combined['変化量'] = delta_str
+
+    # index / columns を order に合わせて並べ替え
+    # （order に含まれないものは最後に回るか、落ちてもOKという想定）
+    pivot_table_combined = pivot_table_combined.reindex(index=order)
+
+    # 列側は「最終カテゴリ + Total + 変化量」の順にしたい
+    col_order = [c for c in order if c in pivot_table_combined.columns]  # 最終カテゴリ側に order を使う場合
+    # 上の行で order が「治療前カテゴリ」用の場合は、列側は現状の列順をそのままでもOK
+    # 必要に応じてここを調整
+    other_cols = [c for c in pivot_table_combined.columns if c not in col_order + ["Total", "変化量"]]
+    pivot_table_combined = pivot_table_combined[other_cols + ["Total", "変化量"]]
+
+    # 欠損を埋める
+    pivot_table_combined = pivot_table_combined.fillna('0 (0.0%)')
+
+    return pivot_table_combined
+
 
 def animate_CI_CVAI_over_age(df_co):
   # 元データを整理
