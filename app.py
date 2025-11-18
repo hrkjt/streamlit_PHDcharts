@@ -1602,7 +1602,7 @@ if submit_button:
     st.write('月齢でのフィルター結果')
     st.write('初診患者：', str(filtered_first_count), '人')
     st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
-    st.write('経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
+    st.write('無治療で経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
     st.write('治療患者：', str(filtered_tx_count), '人')  
 
     #治療期間でフィルタ
@@ -1623,6 +1623,7 @@ if submit_button:
     filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
+    st.write('')
     st.write('治療期間でのフィルター結果')
     st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
     st.write('治療患者：', str(filtered_tx_count), '人')      
