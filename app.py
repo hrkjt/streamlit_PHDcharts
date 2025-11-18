@@ -1585,15 +1585,15 @@ if submit_button:
     filtered_df_co = df_co[(df_co['治療前月齢'] >= min_age) & (df_co['治療前月齢'] <= max_age)]
     filtered_df_tx_pre_post = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
 
-    filtered_first_members = filtered_df_first['ダミーID].unique()
+    filtered_first_members = filtered_df_first['ダミーID'].unique()
     filtered_first_count = len(filtered_first_members)
 
-    co_members = df_co['ダミーID].unique()
-    filtered_co_members = filtered_df_co['ダミーID].unique()
+    co_members = df_co['ダミーID'].unique()
+    filtered_co_members = filtered_df_co['ダミーID'].unique()
     filtered_co_count = len(filtered_co_members)
 
-    treated_members = df_tx_pre_post['ダミーID].unique()
-    filtered_tx_members = filtered_df_tx_pre_post['ダミーID].unique()
+    treated_members = df_tx_pre_post['ダミーID'].unique()
+    filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
     filtered_no_fu_members = set(filtered_first_members) - set(co_members) - set(treated_members)
@@ -1617,10 +1617,10 @@ if submit_button:
 
     filtered_df0 = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療前']
 
-    filtered_co_members = filtered_df_co['ダミーID].unique()
+    filtered_co_members = filtered_df_co['ダミーID'].unique()
     filtered_co_count = len(filtered_co_members)
 
-    filtered_tx_members = filtered_df_tx_pre_post['ダミーID].unique()
+    filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
     st.write('治療期間でのフィルター結果')
