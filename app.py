@@ -2079,6 +2079,20 @@ if submit_button:
         st.dataframe(result, width=800)
         st.markdown("---")
 
+    if filter_pass1 and filter_pass2:
+      st.write('アイメットとクルムを比較します')
+      filtered_df_helmet0 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'アイメット']
+      count = len(filtered_df_helmet0['ダミーID'].unique())
+      st.write('アイメット：', str(count), '人')
+      
+      filtered_df_helmet1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
+      count = len(filtered_df_helmet0['ダミーID'].unique())
+      st.write('クルム：', str(count), '人')
+      
+      for parameter in target_parameters:      
+        graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='アイメット', label2='クルム', border=False, x_limit=max_value)
+        st.markdown("---")
+    
     if filter_pass2 and filter_pass3:
       st.write('クルムフィットと経過観察を比較します')
 
