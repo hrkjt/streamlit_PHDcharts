@@ -1026,6 +1026,278 @@ def graham_hc(df, border=False, x_limit=False):
   import uuid
   st.plotly_chart(fig, key=str(uuid.uuid4()))
 
+def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
+                   border=False, x_limit=False):
+
+    # 6分割サブプロット
+    fig = make_subplots(
+        rows=1, cols=6,
+        subplot_titles=('-3', '4', '5', '6', '7', '8-'),
+        shared_yaxes=True
+    )
+
+    # パラメータ → 重症度カラム名
+    severities_map = {
+        '後頭部対称率':'治療前PSRレベル',
+        '前頭部対称率':'治療前ASRレベル',
+        'CA':'治療前CA重症度',
+        'CVAI':'治療前CVAI重症度',
+        '短頭率':'治療前短頭症',
+        'CI':'治療前短頭症'
+    }
+    parameter_names = {
+        '後頭部対称率':'PSR',
+        '前頭部対称率':'ASR',
+        'CA':'CA',
+        'CVAI':'CVAI',
+        '短頭率':'BI',
+        'CI':'CI'
+    }
+
+    severity_col = severities_map[parameter]
+    parameter_name = parameter_names[parameter]
+
+    # パラメータ別に「重症度レベルの集合」を定義
+    if parameter in ['後頭部対称率', '前頭部対称率']:
+        levels = ['レベル1', 'レベル2', 'レベル3', 'レベル4']
+    elif parameter in ['CA', 'CVAI']:
+        levels = ['軽症', '中等症', '重症', '最重症']
+    else:
+        levels = ['軽症', '中等症', '重症']
+
+    # レベルごとの色
+    base_colors = ['blue', 'green', 'black', 'red', 'purple']
+    level_colors = {lev: base_colors[i] for i, lev in enumerate(levels)}
+
+    ages = ['-3', '4', '5', '6', '7', '8-']
+
+    max_sd0 = 0
+    max_sd1 = 0
+    x_range_mins = {age: 20 for age in ages}
+    x_range_maxs = {age: 0 for age in ages}
+
+    # 2グループ分を準備（線種だけ変える）
+    groups = [
+        {'df': df1, 'label': label1, 'dash': 'solid'},
+        {'df': df2, 'label': label2, 'dash': 'dash'}
+    ]
+
+    # まず各グループごとに「年齢カテゴリ化」「治療前 / 最終スキャン」のテーブルを作る
+    prepared_groups = []
+    for g in groups:
+        df_fig = g['df'].copy()
+
+        # 治療前月齢でバケット
+        df_age = pd.DataFrame()
+
+        df_young = df_fig[df_fig['治療前月齢'] < 4].copy()
+        df_young['治療前月齢'] = '-3'
+        df_age = pd.concat([df_age, df_young])
+
+        for i in range(4, 8):
+            df_temp = df_fig[(df_fig['治療前月齢'] >= i) & (df_fig['治療前月齢'] < i+1)].copy()
+            df_temp['治療前月齢'] = str(i)
+            df_age = pd.concat([df_age, df_temp])
+
+        df_old = df_fig[df_fig['治療前月齢'] >= 8].copy()
+        df_old['治療前月齢'] = '8-'
+        df_age = pd.concat([df_age, df_old])
+
+        df_fig_age = df_age.copy()
+        df_pre = df_fig_age[df_fig_age['治療ステータス'] == '治療前']
+        df_last = df_fig_age.sort_values('月齢').drop_duplicates('ダミーID', keep='last')
+
+        prepared_groups.append({
+            'df_pre': df_pre,
+            'df_last': df_last,
+            'label': g['label'],
+            'dash': g['dash']
+        })
+
+    # 年齢カテゴリごと × 重症度ごと × グループごとに集計して trace を追加
+    for col_idx, age in enumerate(ages, start=1):
+        if col_idx > 6:
+            break
+
+        for gi, g in enumerate(prepared_groups):
+            df_pre = g['df_pre']
+            df_last = g['df_last']
+            label = g['label']
+            dash = g['dash']
+
+            df_temp = df_last[df_last['治療前月齢'] == age]
+            df_pre_age = df_pre[df_pre['治療前月齢'] == age]
+
+            # この年齢カテゴリに誰もいなければスキップ
+            if df_temp.empty or df_pre_age.empty:
+                continue
+
+            # 各重症度レベルごと
+            for lev in levels:
+                df_temp_temp = df_temp[df_temp[severity_col] == lev]
+                if df_temp_temp.empty:
+                    continue
+
+                temp_members = df_temp_temp['ダミーID'].unique()
+                df_pre_temp = df_pre_age[df_pre_age['ダミーID'].isin(temp_members)]
+                if df_pre_temp.empty:
+                    continue
+
+                x, x_sd, y, y_sd = [], [], [], []
+
+                # 月齢（x）の平均・SD
+                mean0 = df_pre_temp['月齢'].mean()
+                mean1 = df_temp_temp['月齢'].mean()
+                sd0 = df_pre_temp['月齢'].std()
+                sd1 = df_temp_temp['月齢'].std()
+
+                x = [mean0, mean1]
+                x_sd = [sd0, sd1]
+
+                if max_sd0 < sd0:
+                    max_sd0 = sd0
+                if max_sd1 < sd1:
+                    max_sd1 = sd1
+
+                # x の最小・最大を更新（全グループ共通の軸を決める）
+                local_min = mean0 - sd0 * 1.1
+                local_max = mean1 + sd1 * 1.1
+                if x_range_mins[age] > local_min:
+                    x_range_mins[age] = local_min
+                if x_range_maxs[age] < local_max:
+                    x_range_maxs[age] = local_max
+
+                # 指標（y）の平均・SD
+                y = [df_pre_temp[parameter].mean(), df_temp_temp[parameter].mean()]
+                y_sd = [df_pre_temp[parameter].std(), df_temp_temp[parameter].std()]
+
+                # legend は「1番左のサブプロット」だけに出す
+                showlegend = (col_idx == 1)
+
+                trace_name = f'{label} {lev}'
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=x, y=y,
+                        error_x=dict(type='data', array=x_sd, visible=True),
+                        error_y=dict(type='data', array=y_sd, visible=True),
+                        mode='markers+lines',
+                        line=dict(color=level_colors[lev], dash=dash),
+                        name=trace_name,
+                        showlegend=showlegend,
+                        legendgroup=trace_name
+                    ),
+                    row=1, col=col_idx
+                )
+
+        # 正常境界線（必要なら）
+        if border:
+            if parameter == 'CVAI':
+                upper_border = 6.25
+                lower_border = 3.5
+            elif parameter == 'CA':
+                upper_border = 6
+                lower_border = False
+            elif parameter == 'CI':
+                upper_border = 94
+                lower_border = False
+            else:
+                upper_border = 90
+                lower_border = False
+
+            fig.add_trace(
+                go.Scatter(
+                    mode='lines',
+                    x=[0, 25],
+                    y=[upper_border, upper_border],
+                    line=dict(color='black', dash='dot'),
+                    showlegend=False
+                ),
+                row=1, col=col_idx
+            )
+
+            if lower_border:
+                fig.add_trace(
+                    go.Scatter(
+                        mode='lines',
+                        x=[0, 25],
+                        y=[lower_border, lower_border],
+                        line=dict(color='black', dash='dash'),
+                        showlegend=False
+                    ),
+                    row=1, col=col_idx
+                )
+
+    # y軸レンジは元の graham と同じロジック
+    if parameter == 'CVAI':
+        y_min, y_max = 0, 19
+    elif parameter == 'CA':
+        y_min, y_max = 0, 25
+    elif parameter == '前頭部対称率':
+        y_min, y_max = 70, 100
+    elif parameter == '後頭部対称率':
+        y_min, y_max = 60, 100
+    elif parameter == '短頭率':
+        y_min, y_max = 94, 114
+    else:  # CI
+        y_min, y_max = 89, 109
+
+    # x軸レンジの幅（全 age カテゴリの中で最大の span）
+    range_max = 0
+    for age in ages:
+        r = x_range_maxs[age] - x_range_mins[age]
+        if r > range_max:
+            range_max = r
+
+    premargin = 0.5
+    if max_sd0 > 0.5:
+        premargin = max_sd0 * 1.1
+
+    # x_limit を使う場合と使わない場合でレイアウトを分ける
+    if x_limit:
+        layout = go.Layout(
+            width=1600, height=900,
+            title=f'Change in {parameter_name} on Age & Severity Groups (compare)',
+            xaxis=dict(title='age', range=[3, 3 + x_limit + 1]),
+            xaxis2=dict(title='age', range=[4, 4 + x_limit + 1]),
+            xaxis3=dict(title='age', range=[5, 5 + x_limit + 1]),
+            xaxis4=dict(title='age', range=[6, 6 + x_limit + 1]),
+            xaxis5=dict(title='age', range=[7, 7 + x_limit + 1]),
+            xaxis6=dict(title='age', range=[8, 8 + x_limit + 1]),
+            yaxis=dict(title='Mean ' + parameter_name, range=[y_min, y_max]),
+            yaxis2=dict(range=[y_min, y_max]),
+            yaxis3=dict(range=[y_min, y_max]),
+            yaxis4=dict(range=[y_min, y_max]),
+            yaxis5=dict(range=[y_min, y_max]),
+            yaxis6=dict(range=[y_min, y_max])
+        )
+    else:
+        layout = go.Layout(
+            width=1600, height=900,
+            title=f'Change in {parameter_name} on Age & Severity Groups (compare)',
+            xaxis=dict(title='age', range=[x_range_mins['-3'], x_range_mins['-3'] + range_max]),
+            xaxis2=dict(title='age', range=[x_range_mins['4'], x_range_mins['4'] + range_max]),
+            xaxis3=dict(title='age', range=[x_range_mins['5'], x_range_mins['5'] + range_max]),
+            xaxis4=dict(title='age', range=[x_range_mins['6'], x_range_mins['6'] + range_max]),
+            xaxis5=dict(title='age', range=[x_range_mins['7'], x_range_mins['7'] + range_max]),
+            xaxis6=dict(title='age', range=[x_range_mins['8-'], x_range_mins['8-'] + range_max]),
+            yaxis=dict(title='Mean ' + parameter_name, range=[y_min, y_max]),
+            yaxis2=dict(range=[y_min, y_max]),
+            yaxis3=dict(range=[y_min, y_max]),
+            yaxis4=dict(range=[y_min, y_max]),
+            yaxis5=dict(range=[y_min, y_max]),
+            yaxis6=dict(range=[y_min, y_max])
+        )
+
+    fig.update_layout(layout)
+    fig.update_layout(plot_bgcolor="white")
+    fig.update_xaxes(linecolor='gray', linewidth=2)
+    fig.update_yaxes(gridcolor='lightgray')
+
+    import uuid
+    st.plotly_chart(fig, key=str(uuid.uuid4()))
+
+
 def animate_BI_PSR(df0, df):
   colors = [
     '#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FF8C33', '#33FFF1', '#8C33FF', '#FF5733', '#57FF33', '#5733FF',
@@ -1807,15 +2079,18 @@ if submit_button:
         st.dataframe(result, width=800)
         st.markdown("---")
 
-      st.write('')
-      st.write('')
-      line_plot('頭囲', filtered_df_co)
+    if filter_pass2 and filter_pass3:
+      st.write('クルムフィットと経過観察を比較します')
 
-      graham_hc(filtered_df_co)
-      #result = make_table('頭囲', filtered_df_co, co = True)
-      #st.table(result)
-      #st.dataframe(result, width=800)
-      st.markdown("---")
+      filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
+      count = len(filtered_df_helmet['ダミーID'].unique())
+      st.write('クルムフィット：', str(count), '人')
+      count = len(filtered_df_co['ダミーID'].unique())
+      st.write('経過観察：', str(count), '人')      
+
+      for parameter in target_parameters:      
+        graham_compare(filtered_df_helmet, filtered_df_co, parameter, label1='クルムフィット', label2='経過観察', border=False, x_limit=max_value)
+        st.markdown("---")
 
     #df_vis = takamatsu(filtered_df_tx_pre_post)
     #st.dataframe(df_vis)
