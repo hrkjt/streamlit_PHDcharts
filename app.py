@@ -1566,6 +1566,13 @@ with st.form(key='filter_form'):
   filter_pass2 = st.checkbox('クルムフィット')
   filter_pass3 = st.checkbox('経過観察')
 
+  # ★ここを追加：どのパラメータのグラフを表示するか
+  selected_parameters = st.multiselect(
+      '実行後に表示する指標（パラメータ）を選択してください（未選択なら全て表示）',
+      options=parameters,          # ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
+      default=parameters
+  )
+  
   submit_button = st.form_submit_button(label='実行')
 
 # 「実行」ボタンを作成
@@ -1662,14 +1669,18 @@ if submit_button:
     animate_hc(filtered_df0, filtered_df)
     st.markdown("---")
     
-    for parameter in parameters:
+    # for parameter in parameters:
+    target_parameters = selected_parameters or parameters
+    for parameter in target_parameters:
       animate(parameter, filtered_df0, filtered_df)
       st.markdown("---")
 
     if (min_age != 1) | (max_age != 13):
       st.markdown("---")
       st.write('対象を制限した場合のヒストグラムを表示します')
-      for parameter in parameters:
+      # for parameter in parameters:
+      target_parameters = selected_parameters or parameters
+      for parameter in target_parameters:
         hist(parameter, filtered_df_first)
         st.markdown("---")
 
@@ -1677,7 +1688,9 @@ if submit_button:
     filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ダミーID'].isin(filtered_treated_patients)]
     
     if filter_pass0 | filter_pass1 | filter_pass2:
-      for parameter in parameters:
+      # for parameter in parameters:
+      target_parameters = selected_parameters or parameters
+      for parameter in target_parameters:
         count = len(filtered_df_tx_pre_post['ダミーID'].unique())
         st.write('')
         st.write('')
@@ -1777,7 +1790,9 @@ if submit_button:
       st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">経過観察群の CI–CVAI の推移</div>', unsafe_allow_html=True)
       animate_CI_CVAI_over_age(filtered_df_co)
       #st.dataframe(filtered_df_co, width=800)
-      for parameter in parameters:
+      # for parameter in parameters:
+      target_parameters = selected_parameters or parameters
+      for parameter in target_parameters:
         st.write('')
         st.write('')
         line_plot(parameter, filtered_df_co)
