@@ -1082,6 +1082,9 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         {'df': df2, 'label': label2, 'dash': 'dash'}
     ]
 
+    # Δ の保存用: (age, level, label) -> np.array(delta)
+    delta_dict = {}
+
     # まず各グループごとに「年齢カテゴリ化」「治療前 / 最終スキャン」のテーブルを作る
     prepared_groups = []
     for g in groups:
@@ -1143,9 +1146,25 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
                 if df_pre_temp.empty:
                     continue
 
+                # pre/post をマージして Δ を計算
+                df_merged = pd.merge(
+                    df_pre_temp[['ダミーID', parameter]],
+                    df_temp_temp[['ダミーID', parameter]],
+                    on='ダミーID',
+                    suffixes=('_pre', '_post')
+                )
+                if df_merged.empty:
+                    continue
+
+                df_merged['delta'] = df_merged[f'{parameter}_post'] - df_merged[f'{parameter}_pre']
+
+                # Δ を保存（群間比較用）
+                key = (age, lev, label)
+                delta_dict[key] = df_merged['delta'].values
+
+                # 描画用の平均・SD（pre/post）
                 x, x_sd, y, y_sd = [], [], [], []
 
-                # 月齢（x）の平均・SD
                 mean0 = df_pre_temp['月齢'].mean()
                 mean1 = df_temp_temp['月齢'].mean()
                 sd0 = df_pre_temp['月齢'].std()
@@ -1228,7 +1247,7 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
                     row=1, col=col_idx
                 )
 
-    # y軸レンジは元の graham と同じロジック
+    # y軸レンジ（元の graham と同じロジック）
     if parameter == 'CVAI':
         y_min, y_max = 0, 19
     elif parameter == 'CA':
@@ -1293,6 +1312,58 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
     fig.update_layout(plot_bgcolor="white")
     fig.update_xaxes(linecolor='gray', linewidth=2)
     fig.update_yaxes(gridcolor='lightgray')
+
+    # ===== ここから p値計算（Δ の群間比較）＆ アノテーション =====
+    for col_idx, age in enumerate(ages, start=1):
+        if col_idx > 6:
+            break
+
+        lines = []
+        for lev in levels:
+            key1 = (age, lev, label1)
+            key2 = (age, lev, label2)
+            if key1 in delta_dict and key2 in delta_dict:
+                d1 = delta_dict[key1]
+                d2 = delta_dict[key2]
+                # サンプル数が両群とも2以上あるときだけ検定
+                if (len(d1) >= 2) and (len(d2) >= 2):
+                    t_stat, p_val = stats.ttest_ind(d1, d2, equal_var=False)
+                    lines.append(f"{lev}: p={p_val:.3f}")
+                else:
+                    lines.append(f"{lev}: p=NA")
+            else:
+                # どちらかの群にデータが無い
+                lines.append(f"{lev}: p=NA")
+
+        # その age 内で1つもデータがなければアノテーションを付けない
+        if not lines:
+            continue
+
+        text_str = "<br>".join(lines)
+
+        # アノテーションの位置（x は真ん中、y は上部）
+        if x_limit:
+            if age == '-3':
+                x0 = 3
+            else:
+                x0 = int(age)
+            x1 = x0 + x_limit + 1
+        else:
+            x0 = x_range_mins[age]
+            x1 = x_range_mins[age] + range_max
+
+        mid_x = (x0 + x1) / 2
+        ann_y = y_max - (y_max - y_min) * 0.05
+
+        fig.add_annotation(
+            x=mid_x,
+            y=ann_y,
+            text=text_str,
+            showarrow=False,
+            row=1,
+            col=col_idx,
+            font=dict(size=11, color='black')
+        )
 
     import uuid
     st.plotly_chart(fig, key=str(uuid.uuid4()))
@@ -2086,7 +2157,7 @@ if submit_button:
       st.write('アイメット：', str(count), '人')
       
       filtered_df_helmet1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
-      count = len(filtered_df_helmet0['ダミーID'].unique())
+      count = len(filtered_df_helmet1['ダミーID'].unique())
       st.write('クルム：', str(count), '人')
       
       for parameter in target_parameters:      
@@ -2100,7 +2171,7 @@ if submit_button:
       st.write('アイメット：', str(count), '人')
       
       filtered_df_helmet1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
-      count = len(filtered_df_helmet0['ダミーID'].unique())
+      count = len(filtered_df_helmet1['ダミーID'].unique())
       st.write('クルムフィット：', str(count), '人')
       
       for parameter in target_parameters:      
@@ -2111,10 +2182,10 @@ if submit_button:
       st.write('クルムとクルムフィットを比較します')
       filtered_df_helmet0 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
       count = len(filtered_df_helmet0['ダミーID'].unique())
-      st.write('アイメット：', str(count), '人')
+      st.write('クルム：', str(count), '人')
       
       filtered_df_helmet1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
-      count = len(filtered_df_helmet0['ダミーID'].unique())
+      count = len(filtered_df_helmet1['ダミーID'].unique())
       st.write('クルムフィット：', str(count), '人')
       
       for parameter in target_parameters:      
