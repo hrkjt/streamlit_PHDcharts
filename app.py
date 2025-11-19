@@ -2020,8 +2020,8 @@ fig.update_layout(
     plot_bgcolor='white',
     title_text='拠点別患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
-    yaxis=dict(title='患者数（積み上げ）'),
-    # yaxis2=dict(title='総患者数', overlaying='y', side='right', showgrid=False),
+    yaxis=dict(title='のべ初診患者数'),
+    yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
 )
