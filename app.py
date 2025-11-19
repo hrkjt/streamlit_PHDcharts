@@ -1906,6 +1906,9 @@ df_group = (
 df_pivot = df_group.pivot_table(index="診察日", columns="クリニック", values="患者総数", fill_value=0)
 df_pivot = df_pivot.sort_index()
 
+# ▼ ここがポイント：クリニックごとに累積に変換
+df_pivot_cum = df_pivot.cumsum()    # ← 累積和
+
 # 色の指定
 clinic_colors = {
     "日本橋": "#1f77b4",
@@ -1934,16 +1937,16 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
         )
 
 # ▼ トータル患者数も参考にサブラインで追加（任意）
-fig.add_trace(
-    go.Scatter(
-        x=df_fig['診察日'],
-        y=df_fig['患者総数'],
-        mode='lines',
-        name='患者総数（全体）',
-        yaxis='y2',
-        line=dict(color='black', width=2),
-    )
-)
+# fig.add_trace(
+#     go.Scatter(
+#         x=df_fig['診察日'],
+#         y=df_fig['患者総数'],
+#         mode='lines',
+#         name='患者総数（全体）',
+#         yaxis='y2',
+#         line=dict(color='black', width=2),
+#     )
+# )
 
 # ▼ レイアウト
 fig.update_layout(
