@@ -18,6 +18,8 @@ import datetime
 
 from scipy import stats
 
+import re
+
 url = st.secrets["API_URL"]
 
 response = requests.get(url)
