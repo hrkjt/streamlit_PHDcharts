@@ -222,6 +222,14 @@ df_co = add_post_levels(df_co)
 # Streamlitアプリのページ設定
 st.set_page_config(page_title='位置的頭蓋変形に関するデータの可視化', page_icon="📊", layout='wide')
 
+def map_clinic(dummy_id):
+    if isinstance(dummy_id, str) and len(dummy_id) > 0:
+        if dummy_id.startswith("T"): return "日本橋"
+        if dummy_id.startswith("K"): return "関西"
+        if dummy_id.startswith("H"): return "表参道"
+        if dummy_id.startswith("F"): return "福岡"
+    return "不明"
+
 #治療率ありでパラメータごとにヒストグラムを作成（go.Barを利用）
 def hist(parameter='短頭率', df_first=df_first):
   import plotly.graph_objects as go
@@ -1881,6 +1889,74 @@ formatted_date = yesterday.strftime("%Y年%m月%d日")
 
 st.markdown(f'<div style="text-align: left; color:black; font-size:18px;">以下のグラフは2021年03月04日から{formatted_date}までのデータにもとづいています</div>', unsafe_allow_html=True)
 #st.write('以下のグラフは2021年03月04日から' + formatted_date + 'までのデータにもとづいています')
+
+st.plotly_chart(fig)
+
+df_fig = df_c.copy()
+df_fig["クリニック"] = df_fig["ダミーID"].apply(map_clinic)
+
+# ▼ 2) 日別 × クリニック別の患者数を集計
+df_group = (
+    df_fig.groupby(["診察日", "クリニック"])["患者総数"]
+    .sum()
+    .reset_index()
+)
+
+# pivot して各クリニックを列にする
+df_pivot = df_group.pivot_table(index="診察日", columns="クリニック", values="患者総数", fill_value=0)
+df_pivot = df_pivot.sort_index()
+
+# 色の指定
+clinic_colors = {
+    "日本橋": "#1f77b4",
+    "関西": "#2ca02c",
+    "表参道": "#ff7f0e",
+    "福岡":   "#d62728"
+}
+
+# ▼ 3) Plotly stacked area chart
+fig = go.Figure()
+
+for clinic in ["日本橋", "関西", "表参道", "福岡"]:
+    if clinic in df_pivot.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_pivot.index,
+                y=df_pivot[clinic],
+                mode='lines',
+                stackgroup='one',     # ←積み上げ指定
+                name=clinic,
+                line=dict(width=0.5),
+                hoverinfo='x+y+name',
+                fill='tonexty',
+                marker=dict(color=clinic_colors[clinic])
+            )
+        )
+
+# ▼ トータル患者数も参考にサブラインで追加（任意）
+fig.add_trace(
+    go.Scatter(
+        x=df_fig['診察日'],
+        y=df_fig['患者総数'],
+        mode='lines',
+        name='患者総数（全体）',
+        yaxis='y2',
+        line=dict(color='black', width=2),
+    )
+)
+
+# ▼ レイアウト
+fig.update_layout(
+    height=900,
+    width=1600,
+    plot_bgcolor='white',
+    title_text='拠点別患者数の推移（積み上げ）',
+    xaxis=dict(type='date', dtick='M1'),
+    yaxis=dict(title='患者数（積み上げ）'),
+    yaxis2=dict(title='総患者数', overlaying='y', side='right', showgrid=False),
+    legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+    font_size=20
+)
 
 st.plotly_chart(fig)
 
