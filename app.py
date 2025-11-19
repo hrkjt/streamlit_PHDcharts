@@ -1895,19 +1895,31 @@ st.plotly_chart(fig)
 df_fig = df_c.copy()
 df_fig["クリニック"] = df_fig["ダミーID"].apply(map_clinic)
 
-# ▼ 2) 日別 × クリニック別の患者数を集計
-df_group = (
-    df_fig.groupby(["診察日", "クリニック"])["患者総数"]
-    .sum()
-    .reset_index()
+# 日付は念のため datetime に
+df_fig["診察日"] = pd.to_datetime(df_fig["診察日"])
+
+# ▼ 2) 日別×クリニック別に「その日の人数」をカウント
+#    ※ 患者総数ではなく、行数で数える
+df_daily = (
+    df_fig
+    .groupby(["診察日", "クリニック"])
+    .size()                                # ← ここが人数
+    .reset_index(name="daily_count")
 )
 
-# pivot して各クリニックを列にする
-df_pivot = df_group.pivot_table(index="診察日", columns="クリニック", values="患者総数", fill_value=0)
-df_pivot = df_pivot.sort_index()
+# pivot してクリニックを列に
+df_pivot = df_daily.pivot_table(
+    index="診察日",
+    columns="クリニック",
+    values="daily_count",
+    fill_value=0
+).sort_index()
 
-# ▼ ここがポイント：クリニックごとに累積に変換
-df_pivot_cum = df_pivot.cumsum()    # ← 累積和
+# ▼ 3) クリニックごとの累積人数に変換
+df_pivot_cum = df_pivot.cumsum()
+
+# ▼ 4) 全体累積（黒線）も daily_count から計算
+total_cum = df_pivot.sum(axis=1).cumsum()
 
 # 色の指定
 clinic_colors = {
