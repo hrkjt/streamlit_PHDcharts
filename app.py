@@ -1345,10 +1345,10 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         if x_limit:
             if age == '-3':
                 x0 = 3
-            elif age == '8-':
-                x0 = 8
             else:
-                x0 = int(age)
+                m = re.match(r'-?\d+', str(age))
+                x0 = int(m.group()) if m else 0
+        
             x1 = x0 + x_limit + 1
         else:
             x0 = x_range_mins[age]
