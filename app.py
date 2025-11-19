@@ -1921,11 +1921,14 @@ clinic_colors = {
 fig = go.Figure()
 
 for clinic in ["日本橋", "関西", "表参道", "福岡"]:
-    if clinic in df_pivot.columns:
+    # if clinic in df_pivot.columns:
+    if clinic in df_pivot_cum.columns:
         fig.add_trace(
             go.Scatter(
-                x=df_pivot.index,
-                y=df_pivot[clinic],
+                # x=df_pivot.index,
+                x=df_pivot_cum.index,
+                # y=df_pivot[clinic],
+                y=df_pivot_cum[clinic],
                 mode='lines',
                 stackgroup='one',     # ←積み上げ指定
                 name=clinic,
