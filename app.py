@@ -1918,6 +1918,24 @@ df_pivot = df_daily.pivot_table(
 # ▼ 3) クリニックごとの累積人数に変換
 df_pivot_cum = df_pivot.cumsum()
 
+# ▼ 4) 治療患者の累積折れ線を作る
+df_treatment_daily = (
+    df_fig[df_fig["治療患者総数"] > 0]     # ← 条件は必要に応じて変更
+    .groupby("診察日")
+    .size()
+    .sort_index()
+)
+
+df_tx_pivot = df_daily.pivot_table(
+    index="診察日",
+    columns="クリニック",
+    values="daily_count",
+    fill_value=0
+).sort_index()
+
+# ▼ 3) クリニック別 累積
+df_tx_pivot_cum = df_tx_pivot.cumsum()
+
 # ▼ 4) 全体累積（黒線）も daily_count から計算
 total_cum = df_pivot.sum(axis=1).cumsum()
 
@@ -1943,11 +1961,27 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 y=df_pivot_cum[clinic],
                 mode='lines',
                 stackgroup='one',     # ←積み上げ指定
-                name=clinic,
+                name=clinic+'初診患者数',
                 line=dict(width=0.5),
                 hoverinfo='x+y+name',
                 fill='tonexty',
                 marker=dict(color=clinic_colors[clinic])
+            )
+        )
+
+for clinic in ["日本橋", "関西", "表参道", "福岡"]:
+    if clinic in df_tx_pivot_cum.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_pivot_cum.index,
+                y=df_pivot_cum[clinic],
+                mode="lines",
+                stackgroup="one",
+                name=clinic+'治療患者数',
+                line=dict(width=0.5),
+                hoverinfo='x+y+name',
+                fill="tonexty",
+                marker=dict(color=clinic_colors[clinic]),
             )
         )
 
@@ -1968,10 +2002,10 @@ fig.update_layout(
     height=900,
     width=1600,
     plot_bgcolor='white',
-    title_text='拠点別患者数の推移（積み上げ）',
+    title_text='拠点別患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
     yaxis=dict(title='患者数（積み上げ）'),
-    yaxis2=dict(title='総患者数', overlaying='y', side='right', showgrid=False),
+    # yaxis2=dict(title='総患者数', overlaying='y', side='right', showgrid=False),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
 )
