@@ -1931,14 +1931,14 @@ df_pivot = df_daily.pivot_table(
 df_pivot_cum = df_pivot.cumsum()
 
 # ▼ 4) 治療患者の累積折れ線を作る
-df_tx_daily = (
-    df_fig[df_fig["治療患者総数"] > 0]
+df_treat = (
+    df_fig[df_fig["発注有無"] == "発注済"]
     .groupby(["診察日", "クリニック"])
     .size()
     .reset_index(name="daily_tx_count")
 )
 
-df_tx_pivot = df_tx_daily.pivot_table(
+df_tx_pivot = df_treat.pivot_table(
     index="診察日",
     columns="クリニック",
     values="daily_tx_count",
@@ -1988,12 +1988,16 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 x=df_tx_pivot_cum.index,
                 y=df_tx_pivot_cum[clinic],
                 mode="lines",
-                stackgroup="one",
+                # stackgroup="one",
                 name=clinic+'治療患者数',
-                line=dict(width=0.5),
+                line=dict(
+                    color=clinic_colors[clinic],
+                    width=3,
+                    dash='dot',   # 見分けやすいよう点線（好みで変更OK）
+                ),
                 hoverinfo='x+y+name',
-                fill="tonexty",
-                marker=dict(color=clinic_colors[clinic]),
+                # fill="tonexty",
+                # marker=dict(color=clinic_colors[clinic]),
             )
         )
 
