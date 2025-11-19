@@ -1357,7 +1357,11 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
             x1 = x_range_mins[age] + range_max
 
         mid_x = (x0 + x1) / 2
-        ann_y = y_max - (y_max - y_min) * 0.05
+
+        if parameter in ['短頭率', 'CA', 'CVAI', 'CI']:
+          ann_y = y_max - (y_max - y_min) * 0.05
+        else:
+          ann_y = y_min + (y_max - y_min) * 0.15
 
         fig.add_annotation(
             x=mid_x,
