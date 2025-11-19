@@ -1972,7 +1972,7 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 # y=df_pivot[clinic],
                 y=df_pivot_cum[clinic],
                 mode='lines',
-                stackgroup='one',     # ←積み上げ指定
+                # stackgroup='one',     # ←積み上げ指定
                 name=clinic+'初診患者数',
                 line=dict(width=0.5),
                 hoverinfo='x+y+name',
@@ -2023,7 +2023,7 @@ fig.update_layout(
     plot_bgcolor='white',
     title_text='拠点別患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
-    yaxis=dict(title='のべ初診患者数'),
+    yaxis=dict(title='クリニック別 初診患者数'),
     yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False, range=[0, ymax]),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
