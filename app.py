@@ -1974,10 +1974,14 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 mode='lines',
                 # stackgroup='one',     # ←積み上げ指定
                 name=clinic+'初診患者数',
-                line=dict(width=0.5),
+                line=dict(
+                    color=clinic_colors[clinic],
+                    width=3,
+                    dash='solid',   # 見分けやすいよう点線（好みで変更OK）
+                ),
                 hoverinfo='x+y+name',
-                fill='tonexty',
-                marker=dict(color=clinic_colors[clinic])
+                # fill='tonexty',
+                # marker=dict(color=clinic_colors[clinic])
             )
         )
 
@@ -1998,7 +2002,7 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 hoverinfo='x+y+name',
                 # fill="tonexty",
                 # marker=dict(color=clinic_colors[clinic]),
-                yaxis='y2'
+                # yaxis='y2'
             )
         )
 
@@ -2021,10 +2025,10 @@ fig.update_layout(
     height=900,
     width=1600,
     plot_bgcolor='white',
-    title_text='拠点別患者数の推移',
+    title_text='クリニック別 患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
-    yaxis=dict(title='クリニック別 初診患者数'),
-    yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False, range=[0, ymax]),
+    yaxis=dict(title='患者数', range=[0, ymax]),
+    # yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False, range=[0, ymax]),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
 )
