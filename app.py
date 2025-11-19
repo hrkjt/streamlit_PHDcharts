@@ -1346,7 +1346,7 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
             if age == '-3':
                 x0 = 3
             elif age == '8-':
-                x0 = 8 + x_limit + 1
+                x0 = 8
             else:
                 x0 = int(age)
             x1 = x0 + x_limit + 1
