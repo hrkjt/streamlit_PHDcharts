@@ -1998,6 +1998,7 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
                 hoverinfo='x+y+name',
                 # fill="tonexty",
                 # marker=dict(color=clinic_colors[clinic]),
+                yaxis='y2'
             )
         )
 
