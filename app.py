@@ -2014,6 +2014,8 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
 #     )
 # )
 
+ymax = df_pivot_cum.max().max()
+
 # ▼ レイアウト
 fig.update_layout(
     height=900,
@@ -2022,7 +2024,7 @@ fig.update_layout(
     title_text='拠点別患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
     yaxis=dict(title='のべ初診患者数'),
-    yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False),
+    yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False, range=[0, ymax]),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
 )
