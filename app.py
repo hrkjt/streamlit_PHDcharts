@@ -1938,7 +1938,7 @@ df_treatment_daily = (
     .sort_index()
 )
 
-df_tx_pivot = df_daily.pivot_table(
+df_tx_pivot = df_treatment_daily.pivot_table(
     index="診察日",
     columns="クリニック",
     values="daily_count",
