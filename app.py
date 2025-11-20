@@ -2224,14 +2224,21 @@ if submit_button:
 
     # ★ここから追加：クリニックでフィルタ
     # clinic_filter = [c for c in selected_clinics if c != "全院"]
-    clinic_filter = selected_clinics
-    if len(clinic_filter) == 0:
-        clinic_filter = clinics  # 全院扱い
+    # clinic_filter = selected_clinics
+    # if len(clinic_filter) == 0:
+    #     clinic_filter = clinics  # 全院扱い
 
-    filtered_df_first     = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
-    filtered_df           = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
-    filtered_df_co        = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
-    filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]      
+    # ★ここから追加：クリニックでフィルタ
+    # 「全院」が含まれていたら、クリニックは全て対象にする
+    if ("全院" in selected_clinics) or (len(selected_clinics) == 0):
+        clinic_filter = clinics  # ["日本橋", "関西", "表参道", "福岡"]
+    else:
+        clinic_filter = [c for c in selected_clinics if c != "全院"]
+    
+    filtered_df_first       = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
+    filtered_df             = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
+    filtered_df_co          = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
+    filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]   
       
     filtered_first_members = filtered_df_first['ダミーID'].unique()
     filtered_first_count = len(filtered_first_members)
