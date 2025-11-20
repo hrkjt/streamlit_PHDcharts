@@ -2166,7 +2166,8 @@ if submit_button:
     filtered_df_tx_pre_post = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
 
     # ★ここから追加：クリニックでフィルタ
-    clinic_filter = [c for c in selected_clinics if c != "全院"]
+    # clinic_filter = [c for c in selected_clinics if c != "全院"]
+    clinic_filter = selected_clinics
     if len(clinic_filter) == 0:
         clinic_filter = clinics  # 全院扱い
 
@@ -2248,6 +2249,9 @@ if submit_button:
     filtered_treated_patients = filtered_df['ダミーID'].unique()
     filtered_df = filtered_df[filtered_df['ダミーID'].isin(filtered_treated_patients)]
     filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]
+
+    st.write("★ クリニックごとの症例数（filtered_df_tx_pre_post）")
+    st.write(filtered_df_tx_pre_post["クリニック"].value_counts())  
 
     # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
     selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
