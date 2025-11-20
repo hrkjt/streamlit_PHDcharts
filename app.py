@@ -1948,7 +1948,14 @@ df_tx_pivot = df_treat.pivot_table(
 # ▼ 3) クリニック別 累積
 df_tx_pivot_cum = df_tx_pivot.cumsum()
 
-# ▼ 4) 全体累積（黒線）も daily_count から計算
+# ▼ index を揃えて（初診側に合わせる）、治療割合を計算
+df_tx_pivot_cum_aligned = df_tx_pivot_cum.reindex(df_pivot_cum.index, fill_value=0)
+
+# 0除算を避けるため、初診0のところは NaN に
+denom = df_pivot_cum.replace(0, np.nan)
+df_ratio = (df_tx_pivot_cum_aligned / denom) * 100  # [%] に変換
+
+# ▼ 全体累積（黒線用に使うなら）
 total_cum = df_pivot.sum(axis=1).cumsum()
 
 # 色の指定
@@ -2006,6 +2013,25 @@ for clinic in ["日本橋", "関西", "表参道", "福岡"]:
             )
         )
 
+# ▼ 治療割合 [%] を右軸に折れ線で重ねる
+for clinic in clinics:
+    if clinic in df_ratio.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_ratio.index,
+                y=df_ratio[clinic],
+                mode="lines",
+                name=clinic + ' 治療割合（%）',
+                line=dict(
+                    color=clinic_colors[clinic],
+                    width=2,
+                    dash='dash',
+                ),
+                hoverinfo='x+y+name',
+                yaxis='y2',
+            )
+        )
+
 # ▼ トータル患者数も参考にサブラインで追加（任意）
 # fig.add_trace(
 #     go.Scatter(
@@ -2027,7 +2053,14 @@ fig.update_layout(
     plot_bgcolor='white',
     title_text='クリニック別 患者数の推移',
     xaxis=dict(type='date', dtick='M1'),
-    yaxis=dict(title='患者数', range=[0, ymax]),
+    yaxis=dict(title='のべ患者数', range=[0, ymax]),
+    yaxis2=dict(
+        title='治療割合（%）',
+        overlaying='y',
+        side='right',
+        showgrid=False,
+        range=[0, 100]
+    ),
     # yaxis2=dict(title='クリニック別 治療患者数', overlaying='y', side='right', showgrid=False, range=[0, ymax]),
     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     font_size=20
