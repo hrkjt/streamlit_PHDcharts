@@ -2171,7 +2171,12 @@ if submit_button:
     df_first['ダミーID']      = df_first['ダミーID'].astype(str)
     df_co['ダミーID']         = df_co['ダミーID'].astype(str)
     df_tx_pre_post['ダミーID'] = df_tx_pre_post['ダミーID'].astype(str)
-    
+
+    # サマリ計算用の「ベースID」を追加
+    df_first['dummy_base']      = df_first['ダミーID']  # 初診はそのまま
+    df_co['dummy_base']         = df_co['ダミーID'].str.rstrip('C')  # 末尾のCを削る
+    df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID']        # ここもそのまま
+      
     # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
     
     all_first_ids = set(df_first['dummy_base'].unique())
