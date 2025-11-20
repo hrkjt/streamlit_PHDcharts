@@ -2240,28 +2240,125 @@ if submit_button:
       
     target_parameters = selected_parameters or parameters
       
-    st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")
+    
 
+    # # ★ フィルタリングのサマリーをためておく入れ物
+    # filter_summary = []
+      
+    # filtered_df = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']
+    # # スライダーで選択された範囲でデータをフィルタリング
+
+    # #月齢でフィルタ
+    # filtered_df_first = df_first[(df_first['月齢'] >= min_age) & (df_first['月齢'] <= max_age)]
+    # filtered_df = filtered_df[(filtered_df['治療前月齢'] >= min_age) & (filtered_df['治療前月齢'] <= max_age)]
+    # filtered_df_co = df_co[(df_co['治療前月齢'] >= min_age) & (df_co['治療前月齢'] <= max_age)]
+    # filtered_df_tx_pre_post = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
+
+    # # ★ここから追加：クリニックでフィルタ
+    # # clinic_filter = [c for c in selected_clinics if c != "全院"]
+    # # clinic_filter = selected_clinics
+    # # if len(clinic_filter) == 0:
+    # #     clinic_filter = clinics  # 全院扱い
+
+    # # ★ここから追加：クリニックでフィルタ
+    # # 「全院」が含まれていたら、クリニックは全て対象にする
+    # if ("全院" in selected_clinics) or (len(selected_clinics) == 0):
+    #     clinic_filter = clinics  # ["日本橋", "関西", "表参道", "福岡"]
+    # else:
+    #     clinic_filter = [c for c in selected_clinics if c != "全院"]
+    
+    # filtered_df_first       = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
+    # filtered_df             = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
+    # filtered_df_co          = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
+    # filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]   
+      
+    # filtered_first_members = filtered_df_first['ダミーID'].unique()
+    # filtered_first_count = len(filtered_first_members)
+
+    # co_members = df_co['ダミーID'].unique()
+    # filtered_co_members = filtered_df_co['ダミーID'].unique()
+    # filtered_co_count = len(filtered_co_members)
+
+    # treated_members = df_tx_pre_post['ダミーID'].unique()
+    # filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
+    # filtered_tx_count = len(filtered_tx_members)
+
+    # filtered_no_fu_members = set(filtered_first_members) - set(co_members) - set(treated_members)
+    # filtered_no_fu_count = len(filtered_no_fu_members)  
+
+    # # ★ここで表用の1行を追加（「月齢フィルタ後」）
+    # filter_summary.append({
+    #     "ステップ": "① 月齢フィルタ後",
+    #     "初診患者数": filtered_first_count,
+    #     "経過観察あり": filtered_co_count,
+    #     "経過観察なし": filtered_no_fu_count,
+    #     "治療患者数": filtered_tx_count,
+    # })      
+      
+    # # st.write('月齢でのフィルター結果')
+    # # st.write('初診患者：', str(filtered_first_count), '人')
+    # # st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
+    # # st.write('無治療で経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
+    # # st.write('治療患者：', str(filtered_tx_count), '人')  
+
+    # #治療期間でフィルタ
+    # filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
+    # filtered_df_co = filtered_df_co[(filtered_df_co['治療期間'] >= min_value) & (filtered_df_co['治療期間'] <= max_value)]
+
+    # filtered_table_members = filtered_df_tx_pre_post[(filtered_df_tx_pre_post['治療期間'] >= min_value) & (filtered_df_tx_pre_post['治療期間'] <= max_value)]['ダミーID'].unique()
+    # filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['治療期間'] <= max_value]
+    # filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ダミーID'].isin(filtered_table_members)]
+
+    # filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
+
+    # # ★治療前データも同じクリニックに絞っておく
+    # filtered_df0 = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療前']
+    # filtered_df0 = filtered_df0[filtered_df0['治療前月齢'].between(min_age, max_age)]
+    # # filtered_df0 = filtered_df0[(filtered_df0['治療期間'] >= min_value) & (filtered_df0['治療期間'] <= max_value)]
+    # filtered_df0 = filtered_df0[filtered_df0['クリニック'].isin(clinic_filter)]
+
+    # # 代わりに「治療後側 filtered_df で治療期間フィルタを通ったID」だけに絞る
+    # valid_ids = filtered_df['ダミーID'].unique()
+    # filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(valid_ids)]  
+
+    # filtered_co_members = filtered_df_co['ダミーID'].unique()
+    # filtered_co_count = len(filtered_co_members)
+
+    # filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
+    # filtered_tx_count = len(filtered_tx_members)
+
+    # # ★治療期間フィルタ後の行を追加
+    # filter_summary.append({
+    #     "ステップ": "② 治療期間フィルタ後",
+    #     "初診患者数": "-",  # このステップでは変わらないので「-」にしておく
+    #     "経過観察あり": filtered_co_count,
+    #     "経過観察なし": "-",  # 同上
+    #     "治療患者数": filtered_tx_count,
+    # })
+
+    st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")      
+      
     # ★ フィルタリングのサマリーをためておく入れ物
     filter_summary = []
       
     filtered_df = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']
     # スライダーで選択された範囲でデータをフィルタリング
 
-    #月齢でフィルタ
-    filtered_df_first = df_first[(df_first['月齢'] >= min_age) & (df_first['月齢'] <= max_age)]
-    filtered_df = filtered_df[(filtered_df['治療前月齢'] >= min_age) & (filtered_df['治療前月齢'] <= max_age)]
-    filtered_df_co = df_co[(df_co['治療前月齢'] >= min_age) & (df_co['治療前月齢'] <= max_age)]
-    filtered_df_tx_pre_post = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
+    # 月齢でフィルタ
+    filtered_df_first = df_first[
+        (df_first['月齢'] >= min_age) & (df_first['月齢'] <= max_age)
+    ]
+    filtered_df = filtered_df[
+        (filtered_df['治療前月齢'] >= min_age) & (filtered_df['治療前月齢'] <= max_age)
+    ]
+    filtered_df_co = df_co[
+        (df_co['治療前月齢'] >= min_age) & (df_co['治療前月齢'] <= max_age)
+    ]
+    filtered_df_tx_pre_post = df_tx_pre_post[
+        (df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)
+    ]
 
     # ★ここから追加：クリニックでフィルタ
-    # clinic_filter = [c for c in selected_clinics if c != "全院"]
-    # clinic_filter = selected_clinics
-    # if len(clinic_filter) == 0:
-    #     clinic_filter = clinics  # 全院扱い
-
-    # ★ここから追加：クリニックでフィルタ
-    # 「全院」が含まれていたら、クリニックは全て対象にする
     if ("全院" in selected_clinics) or (len(selected_clinics) == 0):
         clinic_filter = clinics  # ["日本橋", "関西", "表参道", "福岡"]
     else:
@@ -2271,20 +2368,35 @@ if submit_button:
     filtered_df             = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
     filtered_df_co          = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
     filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]   
-      
-    filtered_first_members = filtered_df_first['ダミーID'].unique()
+
+    # ===== ここから ID 集計は dummy_base でそろえる =====
+
+    # このステップで対象となる「初診患者」
+    filtered_first_members = filtered_df_first['dummy_base'].unique()
     filtered_first_count = len(filtered_first_members)
 
-    co_members = df_co['ダミーID'].unique()
-    filtered_co_members = filtered_df_co['ダミーID'].unique()
+    # 経過観察・治療の「全体（フィルタ前）」の ID
+    # →「経過観察なし」を判定するために使う
+    co_members_all = df_co['dummy_base'].unique()
+    treated_members_all = df_tx_pre_post[
+        df_tx_pre_post['治療ステータス'] == '治療後'
+    ]['dummy_base'].unique()
+
+    # このステップでフィルタを通った「経過観察あり」「治療あり」
+    filtered_co_members = filtered_df_co['dummy_base'].unique()
     filtered_co_count = len(filtered_co_members)
 
-    treated_members = df_tx_pre_post['ダミーID'].unique()
-    filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
+    filtered_tx_members = filtered_df_tx_pre_post['dummy_base'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
-    filtered_no_fu_members = set(filtered_first_members) - set(co_members) - set(treated_members)
-    filtered_no_fu_count = len(filtered_no_fu_members)  
+    # 「無治療で経過観察されなかった患者」
+    # = 初診にいるが、どのタイミングでも co にも tx にも出てこない ID
+    filtered_no_fu_members = (
+        set(filtered_first_members)
+        - set(co_members_all)
+        - set(treated_members_all)
+    )
+    filtered_no_fu_count = len(filtered_no_fu_members)
 
     # ★ここで表用の1行を追加（「月齢フィルタ後」）
     filter_summary.append({
@@ -2294,37 +2406,45 @@ if submit_button:
         "経過観察なし": filtered_no_fu_count,
         "治療患者数": filtered_tx_count,
     })      
-      
-    # st.write('月齢でのフィルター結果')
-    # st.write('初診患者：', str(filtered_first_count), '人')
-    # st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
-    # st.write('無治療で経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
-    # st.write('治療患者：', str(filtered_tx_count), '人')  
 
-    #治療期間でフィルタ
-    filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
-    filtered_df_co = filtered_df_co[(filtered_df_co['治療期間'] >= min_value) & (filtered_df_co['治療期間'] <= max_value)]
+    # 治療期間でフィルタ
+    filtered_df = filtered_df[
+        (filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)
+    ]
+    filtered_df_co = filtered_df_co[
+        (filtered_df_co['治療期間'] >= min_value) & (filtered_df_co['治療期間'] <= max_value)
+    ]
 
-    filtered_table_members = filtered_df_tx_pre_post[(filtered_df_tx_pre_post['治療期間'] >= min_value) & (filtered_df_tx_pre_post['治療期間'] <= max_value)]['ダミーID'].unique()
-    filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['治療期間'] <= max_value]
-    filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ダミーID'].isin(filtered_table_members)]
+    filtered_table_members = filtered_df_tx_pre_post[
+        (filtered_df_tx_pre_post['治療期間'] >= min_value)
+        & (filtered_df_tx_pre_post['治療期間'] <= max_value)
+    ]['dummy_base'].unique()
 
-    filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
+    filtered_df_tx_pre_post = filtered_df_tx_pre_post[
+        filtered_df_tx_pre_post['治療期間'] <= max_value
+    ]
+    filtered_df_tx_pre_post = filtered_df_tx_pre_post[
+        filtered_df_tx_pre_post['dummy_base'].isin(filtered_table_members)
+    ]
+
+    filtered_df = filtered_df[
+        (filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)
+    ]
 
     # ★治療前データも同じクリニックに絞っておく
     filtered_df0 = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療前']
     filtered_df0 = filtered_df0[filtered_df0['治療前月齢'].between(min_age, max_age)]
-    # filtered_df0 = filtered_df0[(filtered_df0['治療期間'] >= min_value) & (filtered_df0['治療期間'] <= max_value)]
     filtered_df0 = filtered_df0[filtered_df0['クリニック'].isin(clinic_filter)]
 
     # 代わりに「治療後側 filtered_df で治療期間フィルタを通ったID」だけに絞る
-    valid_ids = filtered_df['ダミーID'].unique()
-    filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(valid_ids)]  
+    valid_ids = filtered_df['dummy_base'].unique()
+    filtered_df0 = filtered_df0[filtered_df0['dummy_base'].isin(valid_ids)]  
 
-    filtered_co_members = filtered_df_co['ダミーID'].unique()
+    # 再度、経過観察・治療の ID を dummy_base でカウント
+    filtered_co_members = filtered_df_co['dummy_base'].unique()
     filtered_co_count = len(filtered_co_members)
 
-    filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
+    filtered_tx_members = filtered_df_tx_pre_post['dummy_base'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
     # ★治療期間フィルタ後の行を追加
@@ -2335,6 +2455,7 @@ if submit_button:
         "経過観察なし": "-",  # 同上
         "治療患者数": filtered_tx_count,
     })
+
       
     # st.write('')
     # st.write('治療期間でのフィルター結果')
