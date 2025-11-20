@@ -2153,19 +2153,39 @@ if submit_button:
     st.write('一つ以上のチェックボックスを選択してください')
   else:
     # ▼ ここから追加：フィルタ前（全体）の人数サマリ
-    all_first_ids = df_first['ダミーID'].unique()
-    all_co_ids    = df_co['ダミーID'].unique()
-    all_tx_ids    = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['ダミーID'].unique()
+    # all_first_ids = df_first['ダミーID'].unique()
+    # all_co_ids    = df_co['ダミーID'].unique()
+    # # all_tx_ids    = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['ダミーID'].unique()
+    # all_tx_ids    = df_tx_pre_post['ダミーID'].unique()
+      
+    # all_no_fu_ids = set(all_first_ids) - set(all_co_ids) - set(all_tx_ids)
 
-    all_no_fu_ids = set(all_first_ids) - set(all_co_ids) - set(all_tx_ids)
+    # st.markdown('### フィルタ前（全体）の人数')
+    # st.write('初診患者：', len(all_first_ids), '人')
+    # st.write('無治療で経過観察された患者：', len(all_co_ids), '人')
+    # st.write('無治療で経過観察されなかった患者：', len(all_no_fu_ids), '人')
+    # st.write('治療患者：', len(all_tx_ids), '人')
+    # st.markdown('---')
 
+    all_first_ids_set = set(df_first['ダミーID'].unique())
+    
+    # 経過観察に出てきた人（初診にいる人だけに制限）
+    all_co_ids_set = set(df_co['ダミーID'].unique()) & all_first_ids_set
+    
+    # 治療に出てきた人（初診にいる人だけに制限）
+    all_tx_ids_set = set(df_tx_pre_post['ダミーID'].unique()) & all_first_ids_set
+    
+    # 無治療で経過観察されなかった人
+    all_no_fu_ids = all_first_ids_set - all_co_ids_set - all_tx_ids_set
+    
     st.markdown('### フィルタ前（全体）の人数')
-    st.write('初診患者：', len(all_first_ids), '人')
-    st.write('無治療で経過観察された患者：', len(all_co_ids), '人')
+    st.write('初診患者：', len(all_first_ids_set), '人')
+    st.write('無治療で経過観察された患者：', len(all_co_ids_set), '人')
     st.write('無治療で経過観察されなかった患者：', len(all_no_fu_ids), '人')
-    st.write('治療患者：', len(all_tx_ids), '人')
+    st.write('治療患者：', len(all_tx_ids_set), '人')
     st.markdown('---')
 
+      
     # ▼ ここから追加：クリニック別のフィルタ前人数サマリ
     # clinic_filter に "全院" が含まれている場合は全クリニックを対象
     # クリニックの選択肢の変数名が違う場合は clinic_filter を適宜変更してください
