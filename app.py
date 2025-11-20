@@ -2576,15 +2576,20 @@ if submit_button:
         #st.dataframe(df_vis)
         #st.table(df_vis)
       
-    st.write('▶を押すと治療前後の変化が見られます。')
-    animate_BI_PSR(filtered_df0, filtered_df)
-    st.markdown("---")
+    if ('短頭率' in target_parameters) & ('後頭部対称率' in target_parameters):
+        st.write('▶を押すと治療前後の変化が見られます。')
+        animate_BI_PSR(filtered_df0, filtered_df)
+        st.markdown("---")
 
-    animate_CI_CVAI(filtered_df0, filtered_df)
-    st.markdown("---")
+    if ('CI' in target_parameters) & ('CVAI' in target_parameters):      
+        st.write('▶を押すと治療前後の変化が見られます。')
+        animate_CI_CVAI(filtered_df0, filtered_df)
+        st.markdown("---")
 
-    animate_hc(filtered_df0, filtered_df)
-    st.markdown("---")
+    if '頭囲' in target_parameters:
+        st.write('▶を押すと治療前後の変化が見られます。')
+        animate_hc(filtered_df0, filtered_df)
+        st.markdown("---")
     
     # for parameter in parameters:
     # target_parameters = selected_parameters or parameters
