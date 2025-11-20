@@ -2248,10 +2248,7 @@ if submit_button:
 
     filtered_treated_patients = filtered_df['ダミーID'].unique()
     filtered_df = filtered_df[filtered_df['ダミーID'].isin(filtered_treated_patients)]
-    filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]
-
-    st.write("★ クリニックごとの症例数（filtered_df_tx_pre_post）")
-    st.write(filtered_df_tx_pre_post["クリニック"].value_counts())  
+    filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]  
 
     # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
     selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
@@ -2531,8 +2528,10 @@ if submit_button:
     # ---------------------------------------------
     # クリニック間比較：「全院 vs 各院」バージョン
     # ---------------------------------------------
-    
-    # 「全院」が選ばれているか確認
+    st.write("★ クリニックごとの症例数（filtered_df_tx_pre_post）")
+    st.write(filtered_df_tx_pre_post["クリニック"].value_counts())  
+      
+    # 「全院」が選ばれているか確認      
     if "全院" in clinic_filter:
         # 「全院」に対応する母集団（全院のデータ）
         # ※「全院」選択時は filtered_df_tx_pre_post に全クリニックが入っている想定
