@@ -1951,7 +1951,12 @@ df_tx_pivot = df_treat.pivot_table(
 df_tx_pivot_cum = df_tx_pivot.cumsum()
 
 # ▼ index を揃えて（初診側に合わせる）、治療割合を計算
-df_tx_pivot_cum_aligned = df_tx_pivot_cum.reindex(df_pivot_cum.index, fill_value=0)
+# df_tx_pivot_cum_aligned = df_tx_pivot_cum.reindex(df_pivot_cum.index, fill_value=0)
+df_tx_pivot_cum_aligned = (
+    df_tx_pivot_cum
+    .reindex(df_pivot_cum.index)   # 欠損日付を挿入（値は NaN）
+    .ffill()                       # 直前の値をそのまま引き継ぐ
+)
 
 # 0除算を避けるため、初診0のところは NaN に
 denom = df_pivot_cum.replace(0, np.nan)
