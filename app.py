@@ -2167,24 +2167,31 @@ if submit_button:
     # st.write('治療患者：', len(all_tx_ids), '人')
     # st.markdown('---')
 
-    all_first_ids_set = set(df_first['ダミーID'].unique())
+    # まず全て文字列に
+    df_first['ダミーID']      = df_first['ダミーID'].astype(str)
+    df_co['ダミーID']         = df_co['ダミーID'].astype(str)
+    df_tx_pre_post['ダミーID'] = df_tx_pre_post['ダミーID'].astype(str)
     
-    # 経過観察に出てきた人（初診にいる人だけに制限）
-    all_co_ids_set = set(df_co['ダミーID'].unique()) & all_first_ids_set
+    # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
     
-    # 治療に出てきた人（初診にいる人だけに制限）
-    all_tx_ids_set = set(df_tx_pre_post['ダミーID'].unique()) & all_first_ids_set
+    all_first_ids = set(df_first['dummy_base'].unique())
+    all_co_ids    = set(df_co['dummy_base'].unique()) & all_first_ids
+    all_tx_ids    = set(
+        df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['dummy_base'].unique()
+    ) & all_first_ids
     
-    # 無治療で経過観察されなかった人
-    all_no_fu_ids = all_first_ids_set - all_co_ids_set - all_tx_ids_set
+    # 無治療で経過観察された患者 = 経過観察にはいるが治療には出てこない
+    co_only_ids = all_co_ids - all_tx_ids
+    
+    # 無治療で経過観察されなかった患者 = 初診にいるが co にも tx にも出てこない
+    all_no_fu_ids = all_first_ids - all_co_ids - all_tx_ids
     
     st.markdown('### フィルタ前（全体）の人数')
-    st.write('初診患者：', len(all_first_ids_set), '人')
-    st.write('無治療で経過観察された患者：', len(all_co_ids_set), '人')
+    st.write('初診患者：', len(all_first_ids), '人')
+    st.write('無治療で経過観察された患者：', len(co_only_ids), '人')
     st.write('無治療で経過観察されなかった患者：', len(all_no_fu_ids), '人')
-    st.write('治療患者：', len(all_tx_ids_set), '人')
+    st.write('治療患者：', len(all_tx_ids), '人')
     st.markdown('---')
-
       
     # ▼ ここから追加：クリニック別のフィルタ前人数サマリ
     # clinic_filter に "全院" が含まれている場合は全クリニックを対象
