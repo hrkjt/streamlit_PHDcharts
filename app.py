@@ -20,6 +20,8 @@ from scipy import stats
 
 import re
 
+import itertools
+
 url = st.secrets["API_URL"]
 
 response = requests.get(url)
@@ -2521,6 +2523,54 @@ if submit_button:
         if parameter != '頭囲':
           graham_compare(filtered_df_helmet, filtered_df_co, parameter, label1='クルムフィット', label2='経過観察', border=False, x_limit=max_value)
           st.markdown("---")
+
+    # ---------------------------------------------
+    # クリニック間比較（選択されたクリニックが2つ以上のとき）
+    # ---------------------------------------------
+    if len(clinic_filter) > 1:
+
+        st.markdown("---")
+        st.markdown(
+            '<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">'
+            'クリニック間比較（ヘルメット選択・月齢・治療期間フィルタ後のデータ）'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        # 頭囲は graham_compare 対象外なので除外
+        compare_parameters = [p for p in target_parameters if p != '頭囲']
+
+        # クリニックの全ペアを作成（順不同）
+        clinic_pairs = list(itertools.combinations(clinic_filter, 2))
+
+        for c1, c2 in clinic_pairs:
+            df_c1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c1]
+            df_c2 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c2]
+
+            n1 = df_c1['ダミーID'].nunique()
+            n2 = df_c2['ダミーID'].nunique()
+
+            st.write('')
+            st.write(f'【{c1} vs {c2}】')
+            st.write(f'{c1}：{n1}人,  {c2}：{n2}人')
+
+            # データがほぼ無い組み合わせはスキップしてもよい
+            if (n1 == 0) or (n2 == 0):
+                st.write('　※どちらかのクリニックに該当症例がありません')
+                continue
+
+            for parameter in compare_parameters:
+                st.write('')
+                st.write(f'▶ {parameter} の治療前後の変化（{c1} vs {c2}）')
+                graham_compare(
+                    df_c1, df_c2,
+                    parameter,
+                    label1=c1,
+                    label2=c2,
+                    border=False,
+                    x_limit=max_value
+                )
+                st.markdown('---')
 
     #df_vis = takamatsu(filtered_df_tx_pre_post)
     #st.dataframe(df_vis)
