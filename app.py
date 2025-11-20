@@ -2112,6 +2112,7 @@ with st.form(key='filter_form'):
   st.write('ヘルメットを選択してください（複数選択可）')
 
   # チェックボックスを作成
+  filter_pass_all = st.checkbox('全ヘルメット')
   filter_pass0 = st.checkbox('アイメット')
   filter_pass1 = st.checkbox('クルム')
   filter_pass2 = st.checkbox('クルムフィット')
@@ -2145,7 +2146,7 @@ with st.form(key='filter_form'):
 # 「実行」ボタンを作成
 #if st.button('実行'):
 if submit_button:
-  if not filter_pass0 and not filter_pass1 and not filter_pass2 and not filter_pass3:
+  if not filter_pass_all and not filter_pass0 and not filter_pass1 and not filter_pass2 and not filter_pass3:
     st.write('一つ以上のチェックボックスを選択してください')
   else:
     st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")
@@ -2242,7 +2243,7 @@ if submit_button:
     # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
     selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
     
-    if "全院" in selected_clinics_for_summary:
+    if ("全院" in selected_clinics_for_summary) & filter_pass_all:
         st.write('')
         st.write('')
         st.markdown("---")
@@ -2254,7 +2255,7 @@ if submit_button:
           hist(parameter)
           st.markdown("---")
         
-        show_helmet_proportion()
+        show_helmet_proportion(df_helmet)
         st.markdown("---")
         
         show_age_proportion(df_tx_pre_post)
@@ -2262,9 +2263,14 @@ if submit_button:
         
         st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">月齢・重症度別の治療前後の変化</div>', unsafe_allow_html=True)
         st.write('以下のグラフと表は全てのヘルメットを合わせたものです')
+
+        df_tx_pre_post_age_duration_selected = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
+        filtered_table_members = df_tx_pre_post_age_duration_selected[(df_tx_pre_post_age_duration_selected['治療期間'] >= min_value) & (df_tx_pre_post_age_duration_selected['治療期間'] <= max_value)]['ダミーID'].unique()
+        df_tx_pre_post_age_duration_selected = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['治療期間'] <= max_value]
+        df_tx_pre_post_age_duration_selected = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['ダミーID'].isin(filtered_table_members)]
         
-        table_members = df_tx_pre_post[df_tx_pre_post['治療期間'] > 1]['ダミーID'].unique()
-        df_table = df_tx_pre_post[df_tx_pre_post['ダミーID'].isin(table_members)]
+        table_members = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['治療期間'] > 1]['ダミーID'].unique()
+        df_table = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['ダミーID'].isin(table_members)]
         
         for parameter in parameters:
           st.write('')
