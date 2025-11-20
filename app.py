@@ -2255,7 +2255,7 @@ if submit_button:
           hist(parameter)
           st.markdown("---")
         
-        show_helmet_proportion(df_helmet)
+        show_helmet_proportion(df_h)
         st.markdown("---")
         
         show_age_proportion(df_tx_pre_post)
