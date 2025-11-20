@@ -234,6 +234,8 @@ df_co = add_post_levels(df_co)
 # Streamlitアプリのページ設定
 st.set_page_config(page_title='位置的頭蓋変形に関するデータの可視化', page_icon="📊", layout='wide')
 
+clinics = ["日本橋", "関西", "表参道", "福岡"]
+
 def map_clinic(dummy_id):
     if isinstance(dummy_id, str) and len(dummy_id) > 0:
         if dummy_id.startswith("T"): return "日本橋"
