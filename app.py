@@ -2135,6 +2135,7 @@ with st.form(key='filter_form'):
   st.session_state['selected_clinics'] = selected_clinics  
     
   # ★ここを追加：どのパラメータのグラフを表示するか
+  parameters = ['頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
   selected_parameters = st.multiselect(
       '実行後に表示する指標（パラメータ）を選択してください（未選択なら全て表示）',
       options=parameters,          # ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
