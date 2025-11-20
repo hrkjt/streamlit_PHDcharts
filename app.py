@@ -2135,7 +2135,7 @@ with st.form(key='filter_form'):
   st.session_state['selected_clinics'] = selected_clinics  
     
   # ★ここを追加：どのパラメータのグラフを表示するか
-  parameters = ['頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
+  parameters = ['頭囲', '短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
   selected_parameters = st.multiselect(
       '実行後に表示する指標（パラメータ）を選択してください（複数選択可）',
       options=parameters,          # ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
@@ -2206,8 +2206,12 @@ if submit_button:
     # ★治療前データも同じクリニックに絞っておく
     filtered_df0 = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療前']
     filtered_df0 = filtered_df0[filtered_df0['治療前月齢'].between(min_age, max_age)]
-    filtered_df0 = filtered_df0[(filtered_df0['治療期間'] >= min_value) & (filtered_df0['治療期間'] <= max_value)]
+    # filtered_df0 = filtered_df0[(filtered_df0['治療期間'] >= min_value) & (filtered_df0['治療期間'] <= max_value)]
     filtered_df0 = filtered_df0[filtered_df0['クリニック'].isin(clinic_filter)]
+
+    # 代わりに「治療後側 filtered_df で治療期間フィルタを通ったID」だけに絞る
+    valid_ids = filtered_df['ダミーID'].unique()
+    filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(valid_ids)]  
 
     filtered_co_members = filtered_df_co['ダミーID'].unique()
     filtered_co_count = len(filtered_co_members)
