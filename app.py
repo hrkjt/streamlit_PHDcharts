@@ -238,11 +238,25 @@ clinics = ["日本橋", "関西", "表参道", "福岡"]
 
 def map_clinic(dummy_id):
     if isinstance(dummy_id, str) and len(dummy_id) > 0:
+        # 経過観察で末尾に付けた "C" を除去
+        if dummy_id.endswith("C"):
+            dummy_id = dummy_id[:-1]
+        
         if dummy_id.startswith("T"): return "日本橋"
         if dummy_id.startswith("K"): return "関西"
         if dummy_id.startswith("H"): return "表参道"
         if dummy_id.startswith("F"): return "福岡"
     return "不明"
+
+# df_tx_pre_post, df_first, df_co を作り終わったあたりに追加
+for _df in [df_first, df_tx_pre_post, df_co]:
+    _df['クリニック'] = _df['ダミーID'].apply(map_clinic)
+
+# ★ここを追加：各データフレームにクリニック列を付与
+# df_first["クリニック"]      = df_first["ダミーID"].apply(map_clinic)
+# df_tx_pre_post["クリニック"] = df_tx_pre_post["ダミーID"].apply(map_clinic)
+# df_co["クリニック"]         = df_co["ダミーID"].apply(map_clinic)
+df_h["クリニック"]          = df_h["ダミーID"].apply(map_clinic)
 
 #治療率ありでパラメータごとにヒストグラムを作成（go.Barを利用）
 def hist(parameter='短頭率', df_first=df_first):
@@ -330,12 +344,12 @@ def hist(parameter='短頭率', df_first=df_first):
 
   st.plotly_chart(fig)
 
-def show_helmet_proportion():
+def show_helmet_proportion(df_helmet):
   # 色をカスタマイズ
   colors = ['red', 'green', 'blue']
 
   # ヘルメットの種類ごとに行の数を集計
-  counts = df_h['ヘルメット'].value_counts().reset_index()
+  counts = df_helmet['ヘルメット'].value_counts().reset_index()
   counts.columns = ['ヘルメット', '数']
 
   # 円グラフ作成
@@ -2075,57 +2089,6 @@ fig.update_layout(
 
 st.plotly_chart(fig)
 
-st.write('')
-st.write('')
-st.markdown("---")
-st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">受診患者の重症度の分布および矯正治療を受けた割合</div>', unsafe_allow_html=True)
-
-parameters = ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
-
-for parameter in parameters:
-  hist(parameter)
-  st.markdown("---")
-
-show_helmet_proportion()
-st.markdown("---")
-
-show_age_proportion(df_tx_pre_post)
-st.markdown("---")
-
-st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">月齢・重症度別の治療前後の変化</div>', unsafe_allow_html=True)
-st.write('以下のグラフと表は全てのヘルメットを合わせたものです')
-
-table_members = df_tx_pre_post[df_tx_pre_post['治療期間'] > 1]['ダミーID'].unique()
-df_table = df_tx_pre_post[df_tx_pre_post['ダミーID'].isin(table_members)]
-
-for parameter in parameters:
-  st.write('')
-  st.write('')
-  st.write(parameter+'の治療前後の変化（1か月以上の治療）')
-  graham(df_table, parameter)
-
-  result = make_confusion_matrix(df_table, parameter)
-  st.dataframe(result, width=800)
-  
-  result = make_table(parameter, df_table)
-  #st.table(result)
-  st.dataframe(result, width=800)
-  st.markdown("---")
-
-st.write('')
-st.write('')
-st.write('頭囲の治療前後の変化（1か月以上の治療）')
-graham_hc(df_table)
-
-#result = make_table('頭囲', df_table)
-#st.table(result)
-#st.dataframe(result, width=800)
-st.markdown("---")
-
-#df_vis = takamatsu(df_tx)
-#st.dataframe(df_vis)
-#st.table(df_vis)
-
 with st.form(key='filter_form'):
   st.write('患者を絞ってグラフを作成します')
 
@@ -2154,6 +2117,22 @@ with st.form(key='filter_form'):
   filter_pass2 = st.checkbox('クルムフィット')
   filter_pass3 = st.checkbox('経過観察')
 
+  # ★追加：クリニック選択
+  # clinic_options = ["全院"] + clinics
+  # selected_clinic = st.selectbox(
+  #     'クリニックを選択してください',
+  #     clinic_options
+  # )
+
+  clinic_options = ["全院"] + clinics  # clinics = ["日本橋", "関西", "表参道", "福岡"]
+  selected_clinics = st.multiselect(
+      'クリニックを選択してください（複数選択可）',
+      options=clinic_options,
+      default=["全院"]
+  )
+    
+  st.session_state['selected_clinics'] = selected_clinics  
+    
   # ★ここを追加：どのパラメータのグラフを表示するか
   selected_parameters = st.multiselect(
       '実行後に表示する指標（パラメータ）を選択してください（未選択なら全て表示）',
@@ -2180,6 +2159,16 @@ if submit_button:
     filtered_df_co = df_co[(df_co['治療前月齢'] >= min_age) & (df_co['治療前月齢'] <= max_age)]
     filtered_df_tx_pre_post = df_tx_pre_post[(df_tx_pre_post['治療前月齢'] >= min_age) & (df_tx_pre_post['治療前月齢'] <= max_age)]
 
+    # ★ここから追加：クリニックでフィルタ
+    clinic_filter = [c for c in selected_clinics if c != "全院"]
+    if len(clinic_filter) == 0:
+        clinic_filter = clinics  # 全院扱い
+
+    filtered_df_first     = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
+    filtered_df           = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
+    filtered_df_co        = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
+    filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]      
+      
     filtered_first_members = filtered_df_first['ダミーID'].unique()
     filtered_first_count = len(filtered_first_members)
 
@@ -2210,7 +2199,11 @@ if submit_button:
 
     filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
 
+    # ★治療前データも同じクリニックに絞っておく
     filtered_df0 = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療前']
+    filtered_df0 = filtered_df0[filtered_df0['治療前月齢'].between(min_age, max_age)]
+    filtered_df0 = filtered_df0[(filtered_df0['治療期間'] >= min_value) & (filtered_df0['治療期間'] <= max_value)]
+    filtered_df0 = filtered_df0[filtered_df0['クリニック'].isin(clinic_filter)]
 
     filtered_co_members = filtered_df_co['ダミーID'].unique()
     filtered_co_count = len(filtered_co_members)
@@ -2246,7 +2239,61 @@ if submit_button:
     filtered_df = filtered_df[filtered_df['ダミーID'].isin(filtered_treated_patients)]
     filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]
 
-
+    # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
+    selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
+    
+    if "全院" in selected_clinics_for_summary:
+        st.write('')
+        st.write('')
+        st.markdown("---")
+        st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">受診患者の重症度の分布および矯正治療を受けた割合</div>', unsafe_allow_html=True)
+        
+        parameters = ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
+        
+        for parameter in parameters:
+          hist(parameter)
+          st.markdown("---")
+        
+        show_helmet_proportion()
+        st.markdown("---")
+        
+        show_age_proportion(df_tx_pre_post)
+        st.markdown("---")
+        
+        st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">月齢・重症度別の治療前後の変化</div>', unsafe_allow_html=True)
+        st.write('以下のグラフと表は全てのヘルメットを合わせたものです')
+        
+        table_members = df_tx_pre_post[df_tx_pre_post['治療期間'] > 1]['ダミーID'].unique()
+        df_table = df_tx_pre_post[df_tx_pre_post['ダミーID'].isin(table_members)]
+        
+        for parameter in parameters:
+          st.write('')
+          st.write('')
+          st.write(parameter+'の治療前後の変化（1か月以上の治療）')
+          graham(df_table, parameter)
+        
+          result = make_confusion_matrix(df_table, parameter)
+          st.dataframe(result, width=800)
+          
+          result = make_table(parameter, df_table)
+          #st.table(result)
+          st.dataframe(result, width=800)
+          st.markdown("---")
+        
+        st.write('')
+        st.write('')
+        st.write('頭囲の治療前後の変化（1か月以上の治療）')
+        graham_hc(df_table)
+        
+        #result = make_table('頭囲', df_table)
+        #st.table(result)
+        #st.dataframe(result, width=800)
+        st.markdown("---")
+        
+        #df_vis = takamatsu(df_tx)
+        #st.dataframe(df_vis)
+        #st.table(df_vis)
+      
     st.write('▶を押すと治療前後の変化が見られます。')
     animate_BI_PSR(filtered_df0, filtered_df)
     st.markdown("---")
