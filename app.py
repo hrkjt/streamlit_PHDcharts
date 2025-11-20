@@ -2137,7 +2137,7 @@ with st.form(key='filter_form'):
   # ★ここを追加：どのパラメータのグラフを表示するか
   parameters = ['頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
   selected_parameters = st.multiselect(
-      '実行後に表示する指標（パラメータ）を選択してください（未選択なら全て表示）',
+      '実行後に表示する指標（パラメータ）を選択してください（複数選択可）',
       options=parameters,          # ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
       default=parameters
   )
@@ -2150,6 +2150,8 @@ if submit_button:
   if not filter_pass_all and not filter_pass0 and not filter_pass1 and not filter_pass2 and not filter_pass3:
     st.write('一つ以上のチェックボックスを選択してください')
   else:
+    target_parameters = selected_parameters or parameters
+      
     st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")
     
     filtered_df = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']
@@ -2250,11 +2252,13 @@ if submit_button:
         st.markdown("---")
         st.markdown('<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">受診患者の重症度の分布および矯正治療を受けた割合</div>', unsafe_allow_html=True)
         
-        parameters = ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
+        # parameters = ['短頭率', '前頭部対称率', '後頭部対称率', 'CA', 'CVAI', 'CI']
+        target_parameters = selected_parameters or parameters
         
-        for parameter in parameters:
-          hist(parameter)
-          st.markdown("---")
+        for parameter in target_parameters:
+          if parameter != '頭囲':  
+              hist(parameter)
+              st.markdown("---")
         
         show_helmet_proportion(df_h)
         st.markdown("---")
@@ -2273,30 +2277,32 @@ if submit_button:
         table_members = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['治療期間'] > 1]['ダミーID'].unique()
         df_table = df_tx_pre_post_age_duration_selected[df_tx_pre_post_age_duration_selected['ダミーID'].isin(table_members)]
         
-        for parameter in parameters:
-          st.write('')
-          st.write('')
-          st.write(parameter+'の治療前後の変化（1か月以上の治療）')
-          graham(df_table, parameter)
-        
-          result = make_confusion_matrix(df_table, parameter)
-          st.dataframe(result, width=800)
-          
-          result = make_table(parameter, df_table)
-          #st.table(result)
-          st.dataframe(result, width=800)
-          st.markdown("---")
-        
-        st.write('')
-        st.write('')
-        st.write('頭囲の治療前後の変化（1か月以上の治療）')
-        graham_hc(df_table)
-        
-        #result = make_table('頭囲', df_table)
-        #st.table(result)
-        #st.dataframe(result, width=800)
-        st.markdown("---")
-        
+        for parameter in target_parameters:
+          if parameter != '頭囲':  
+              st.write('')
+              st.write('')
+              st.write(parameter+'の治療前後の変化（1か月以上の治療）')
+              graham(df_table, parameter)
+            
+              result = make_confusion_matrix(df_table, parameter)
+              st.dataframe(result, width=800)
+              
+              result = make_table(parameter, df_table)
+              #st.table(result)
+              st.dataframe(result, width=800)
+              st.markdown("---")
+
+          else:
+            st.write('')
+            st.write('')
+            st.write('頭囲の治療前後の変化（1か月以上の治療）')
+            graham_hc(df_table)
+            
+            #result = make_table('頭囲', df_table)
+            #st.table(result)
+            #st.dataframe(result, width=800)
+            st.markdown("---")
+            
         #df_vis = takamatsu(df_tx)
         #st.dataframe(df_vis)
         #st.table(df_vis)
@@ -2312,10 +2318,11 @@ if submit_button:
     st.markdown("---")
     
     # for parameter in parameters:
-    target_parameters = selected_parameters or parameters
+    # target_parameters = selected_parameters or parameters
     for parameter in target_parameters:
-      animate(parameter, filtered_df0, filtered_df)
-      st.markdown("---")
+      if parameter != '頭囲':  
+          animate(parameter, filtered_df0, filtered_df)
+          st.markdown("---")
 
     if (min_age != 1) | (max_age != 13):
       st.markdown("---")
@@ -2323,107 +2330,109 @@ if submit_button:
       # for parameter in parameters:
       target_parameters = selected_parameters or parameters
       for parameter in target_parameters:
-        hist(parameter, filtered_df_first)
-        st.markdown("---")
+        if parameter != '頭囲':  
+            hist(parameter, filtered_df_first)
+            st.markdown("---")
 
     filtered_treated_patients = filtered_df_tx_pre_post[filtered_df_tx_pre_post['治療ステータス'] == '治療後']['ダミーID'].unique()
     filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ダミーID'].isin(filtered_treated_patients)]
     
     if filter_pass0 | filter_pass1 | filter_pass2:
       # for parameter in parameters:
-      target_parameters = selected_parameters or parameters
+      # target_parameters = selected_parameters or parameters
       for parameter in target_parameters:
-        count = len(filtered_df_tx_pre_post['ダミーID'].unique())
-        st.write('')
-        st.write('')
-        st.write(parameter+'の治療前後の変化　', str(count), '人')
-        graham(filtered_df_tx_pre_post, parameter, x_limit=max_value)
-        result = make_confusion_matrix(filtered_df_tx_pre_post, parameter)
-        st.dataframe(result, width=800)
-        result = make_table(parameter, filtered_df_tx_pre_post)
-        st.dataframe(result, width=800)
-        st.markdown("---")
-
-        if filter_pass0:
-          filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'アイメット']
-          count = len(filtered_df_helmet['ダミーID'].unique())
+        if parameter != '頭囲':
+            count = len(filtered_df_tx_pre_post['ダミーID'].unique())
+            st.write('')
+            st.write('')
+            st.write(parameter+'の治療前後の変化　', str(count), '人')
+            graham(filtered_df_tx_pre_post, parameter, x_limit=max_value)
+            result = make_confusion_matrix(filtered_df_tx_pre_post, parameter)
+            st.dataframe(result, width=800)
+            result = make_table(parameter, filtered_df_tx_pre_post)
+            st.dataframe(result, width=800)
+            st.markdown("---")
+    
+            if filter_pass0:
+              filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'アイメット']
+              count = len(filtered_df_helmet['ダミーID'].unique())
+              st.write('')
+              st.write('')
+              st.write(parameter+'の治療前後の変化(アイメット)　', str(count), '人')
+              graham(filtered_df_helmet, parameter, x_limit=max_value)
+              result = make_confusion_matrix(filtered_df_helmet, parameter)
+              st.dataframe(result, width=800)
+              result = make_table(parameter, filtered_df_helmet)
+              st.dataframe(result, width=800)
+              st.markdown("---")
+    
+            if filter_pass1:
+              filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
+              count = len(filtered_df_helmet['ダミーID'].unique())
+              st.write('')
+              st.write('')
+              st.write(parameter+'の治療前後の変化(クルム)　', str(count), '人')
+              graham(filtered_df_helmet, parameter, x_limit=max_value)
+              result = make_confusion_matrix(filtered_df_helmet, parameter)
+              st.dataframe(result, width=800)
+              result = make_table(parameter, filtered_df_helmet)
+              st.dataframe(result, width=800)
+              st.markdown("---")
+    
+            if filter_pass2:
+              filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
+              count = len(filtered_df_helmet['ダミーID'].unique())
+              st.write('')
+              st.write('')
+              st.write(parameter+'の治療前後の変化(クルムフィット)　', str(count), '人')
+              graham(filtered_df_helmet, parameter, x_limit=max_value)
+              result = make_confusion_matrix(filtered_df_helmet, parameter)
+              st.dataframe(result, width=800)
+              result = make_table(parameter, filtered_df_helmet)
+              st.dataframe(result, width=800)
+              st.markdown("---")
+        else:
+          count = len(filtered_df_tx_pre_post['ダミーID'].unique())
           st.write('')
           st.write('')
-          st.write(parameter+'の治療前後の変化(アイメット)　', str(count), '人')
-          graham(filtered_df_helmet, parameter, x_limit=max_value)
-          result = make_confusion_matrix(filtered_df_helmet, parameter)
-          st.dataframe(result, width=800)
-          result = make_table(parameter, filtered_df_helmet)
-          st.dataframe(result, width=800)
+          st.write('頭囲の治療前後の変化　', str(count), '人')
+          graham_hc(filtered_df_tx_pre_post, x_limit=max_value)
+          #result = make_table(parameter, filtered_df_tx_pre_post)
+          #st.dataframe(result, width=800)
           st.markdown("---")
-
-        if filter_pass1:
-          filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
-          count = len(filtered_df_helmet['ダミーID'].unique())
-          st.write('')
-          st.write('')
-          st.write(parameter+'の治療前後の変化(クルム)　', str(count), '人')
-          graham(filtered_df_helmet, parameter, x_limit=max_value)
-          result = make_confusion_matrix(filtered_df_helmet, parameter)
-          st.dataframe(result, width=800)
-          result = make_table(parameter, filtered_df_helmet)
-          st.dataframe(result, width=800)
-          st.markdown("---")
-
-        if filter_pass2:
-          filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
-          count = len(filtered_df_helmet['ダミーID'].unique())
-          st.write('')
-          st.write('')
-          st.write(parameter+'の治療前後の変化(クルムフィット)　', str(count), '人')
-          graham(filtered_df_helmet, parameter, x_limit=max_value)
-          result = make_confusion_matrix(filtered_df_helmet, parameter)
-          st.dataframe(result, width=800)
-          result = make_table(parameter, filtered_df_helmet)
-          st.dataframe(result, width=800)
-          st.markdown("---")
-
-      count = len(filtered_df_tx_pre_post['ダミーID'].unique())
-      st.write('')
-      st.write('')
-      st.write('頭囲の治療前後の変化　', str(count), '人')
-      graham_hc(filtered_df_tx_pre_post, x_limit=max_value)
-      #result = make_table(parameter, filtered_df_tx_pre_post)
-      #st.dataframe(result, width=800)
-      st.markdown("---")
-
-      if filter_pass0:
-        filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'アイメット']
-        count = len(filtered_df_helmet['ダミーID'].unique())
-        st.write('')
-        st.write('')
-        st.write('頭囲の治療前後の変化(アイメット)　', str(count), '人')
-        graham_hc(filtered_df_helmet, x_limit=max_value)
-        #result = make_table('頭囲', filtered_df_helmet)
-        #st.dataframe(result, width=800)
-        st.markdown("---")
-
-      if filter_pass1:
-        filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
-        count = len(filtered_df_helmet['ダミーID'].unique())
-        st.write('')
-        st.write('')
-        st.write('頭囲の治療前後の変化(クルム)　', str(count), '人')
-        graham_hc(filtered_df_helmet, x_limit=max_value)
-        #result = make_table('頭囲', filtered_df_helmet)
-        #st.dataframe(result, width=800)
-        st.markdown("---")
-
-      if filter_pass2:
-        filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
-        count = len(filtered_df_helmet['ダミーID'].unique())
-        st.write('')
-        st.write('')
-        st.write('頭囲の治療前後の変化(クルムフィット)　', str(count), '人')
-        graham_hc(filtered_df_helmet, x_limit=max_value)
-        #result = make_table('頭囲', filtered_df_helmet)
-        #st.dataframe(result, width=800)
-        st.markdown("---")
+    
+          if filter_pass0:
+            filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'アイメット']
+            count = len(filtered_df_helmet['ダミーID'].unique())
+            st.write('')
+            st.write('')
+            st.write('頭囲の治療前後の変化(アイメット)　', str(count), '人')
+            graham_hc(filtered_df_helmet, x_limit=max_value)
+            #result = make_table('頭囲', filtered_df_helmet)
+            #st.dataframe(result, width=800)
+            st.markdown("---")
+    
+          if filter_pass1:
+            filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルム']
+            count = len(filtered_df_helmet['ダミーID'].unique())
+            st.write('')
+            st.write('')
+            st.write('頭囲の治療前後の変化(クルム)　', str(count), '人')
+            graham_hc(filtered_df_helmet, x_limit=max_value)
+            #result = make_table('頭囲', filtered_df_helmet)
+            #st.dataframe(result, width=800)
+            st.markdown("---")
+    
+          if filter_pass2:
+            filtered_df_helmet = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] == 'クルムフィット']
+            count = len(filtered_df_helmet['ダミーID'].unique())
+            st.write('')
+            st.write('')
+            st.write('頭囲の治療前後の変化(クルムフィット)　', str(count), '人')
+            graham_hc(filtered_df_helmet, x_limit=max_value)
+            #result = make_table('頭囲', filtered_df_helmet)
+            #st.dataframe(result, width=800)
+            st.markdown("---")
     
     if filter_pass3:
       st.write('経過観察した場合のグラフを表示します')
@@ -2435,19 +2444,20 @@ if submit_button:
       # for parameter in parameters:
       target_parameters = selected_parameters or parameters
       for parameter in target_parameters:
-        st.write('')
-        st.write('')
-        line_plot(parameter, filtered_df_co)
-
-        graham(filtered_df_co, parameter)
-        
-        result = make_confusion_matrix(filtered_df_co, parameter)
-        st.dataframe(result, width=800)
-        
-        result = make_table(parameter, filtered_df_co, co = True)
-        #st.table(result)
-        st.dataframe(result, width=800)
-        st.markdown("---")
+        if parameter != '頭囲':
+            st.write('')
+            st.write('')
+            line_plot(parameter, filtered_df_co)
+    
+            graham(filtered_df_co, parameter)
+            
+            result = make_confusion_matrix(filtered_df_co, parameter)
+            st.dataframe(result, width=800)
+            
+            result = make_table(parameter, filtered_df_co, co = True)
+            #st.table(result)
+            st.dataframe(result, width=800)
+            st.markdown("---")
 
     if filter_pass0 and filter_pass1:
       st.write('アイメットとクルムを比較します')
@@ -2459,9 +2469,10 @@ if submit_button:
       count = len(filtered_df_helmet1['ダミーID'].unique())
       st.write('クルム：', str(count), '人')
       
-      for parameter in target_parameters:      
-        graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='アイメット', label2='クルム', border=False, x_limit=max_value)
-        st.markdown("---")
+      for parameter in target_parameters:
+        if parameter != '頭囲':
+            graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='アイメット', label2='クルム', border=False, x_limit=max_value)
+            st.markdown("---")
 
     if filter_pass0 and filter_pass2:
       st.write('アイメットとクルムフィットを比較します')
@@ -2473,9 +2484,10 @@ if submit_button:
       count = len(filtered_df_helmet1['ダミーID'].unique())
       st.write('クルムフィット：', str(count), '人')
       
-      for parameter in target_parameters:      
-        graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='アイメット', label2='クルムフィット', border=False, x_limit=max_value)
-        st.markdown("---")
+      for parameter in target_parameters:
+        if parameter != '頭囲':
+            graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='アイメット', label2='クルムフィット', border=False, x_limit=max_value)
+            st.markdown("---")
 
     if filter_pass1 and filter_pass2:
       st.write('クルムとクルムフィットを比較します')
@@ -2488,8 +2500,9 @@ if submit_button:
       st.write('クルムフィット：', str(count), '人')
       
       for parameter in target_parameters:      
-        graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='クルム', label2='クルムフィット', border=False, x_limit=max_value)
-        st.markdown("---")
+        if parameter != '頭囲':  
+            graham_compare(filtered_df_helmet0, filtered_df_helmet1, parameter, label1='クルム', label2='クルムフィット', border=False, x_limit=max_value)
+            st.markdown("---")
     
     if filter_pass2 and filter_pass3:
       st.write('クルムフィットと経過観察を比較します')
@@ -2500,9 +2513,10 @@ if submit_button:
       count = len(filtered_df_co['ダミーID'].unique())
       st.write('経過観察：', str(count), '人')      
 
-      for parameter in target_parameters:      
-        graham_compare(filtered_df_helmet, filtered_df_co, parameter, label1='クルムフィット', label2='経過観察', border=False, x_limit=max_value)
-        st.markdown("---")
+      for parameter in target_parameters:
+        if parameter != '頭囲':
+          graham_compare(filtered_df_helmet, filtered_df_co, parameter, label1='クルムフィット', label2='経過観察', border=False, x_limit=max_value)
+          st.markdown("---")
 
     #df_vis = takamatsu(filtered_df_tx_pre_post)
     #st.dataframe(df_vis)
