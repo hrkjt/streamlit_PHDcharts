@@ -2155,7 +2155,10 @@ if submit_button:
     target_parameters = selected_parameters or parameters
       
     st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")
-    
+
+    # ★ フィルタリングのサマリーをためておく入れ物
+    filter_summary = []
+      
     filtered_df = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']
     # スライダーで選択された範囲でデータをフィルタリング
 
@@ -2190,11 +2193,20 @@ if submit_button:
     filtered_no_fu_members = set(filtered_first_members) - set(co_members) - set(treated_members)
     filtered_no_fu_count = len(filtered_no_fu_members)  
 
-    st.write('月齢でのフィルター結果')
-    st.write('初診患者：', str(filtered_first_count), '人')
-    st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
-    st.write('無治療で経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
-    st.write('治療患者：', str(filtered_tx_count), '人')  
+    # ★ここで表用の1行を追加（「月齢フィルタ後」）
+    filter_summary.append({
+        "ステップ": "① 月齢フィルタ後",
+        "初診患者数": filtered_first_count,
+        "経過観察あり": filtered_co_count,
+        "経過観察なし": filtered_no_fu_count,
+        "治療患者数": filtered_tx_count,
+    })      
+      
+    # st.write('月齢でのフィルター結果')
+    # st.write('初診患者：', str(filtered_first_count), '人')
+    # st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
+    # st.write('無治療で経過観察されなかった患者：', str(filtered_no_fu_count), '人')  
+    # st.write('治療患者：', str(filtered_tx_count), '人')  
 
     #治療期間でフィルタ
     filtered_df = filtered_df[(filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)]
@@ -2222,10 +2234,19 @@ if submit_button:
     filtered_tx_members = filtered_df_tx_pre_post['ダミーID'].unique()
     filtered_tx_count = len(filtered_tx_members)
 
-    st.write('')
-    st.write('治療期間でのフィルター結果')
-    st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
-    st.write('治療患者：', str(filtered_tx_count), '人')      
+    # ★治療期間フィルタ後の行を追加
+    filter_summary.append({
+        "ステップ": "② 治療期間フィルタ後",
+        "初診患者数": "-",  # このステップでは変わらないので「-」にしておく
+        "経過観察あり": filtered_co_count,
+        "経過観察なし": "-",  # 同上
+        "治療患者数": filtered_tx_count,
+    })
+      
+    # st.write('')
+    # st.write('治療期間でのフィルター結果')
+    # st.write('無治療で経過観察された患者：', str(filtered_co_count), '人')
+    # st.write('治療患者：', str(filtered_tx_count), '人')      
 
     # チェックボックスの状態に応じてデータをフィルタリング
     if not filter_pass0:
@@ -2250,6 +2271,18 @@ if submit_button:
     filtered_df = filtered_df[filtered_df['ダミーID'].isin(filtered_treated_patients)]
     filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]  
 
+    # ★最終的な対象人数をここで集計
+    final_tx_count = filtered_df['ダミーID'].nunique()
+    final_co_count = filtered_df_co['ダミーID'].nunique() if filter_pass3 else 0
+
+    filter_summary.append({
+        "ステップ": "③ ヘルメット・クリニック選択後",
+        "初診患者数": "-",        # ここでは追わない
+        "経過観察あり": final_co_count,
+        "経過観察なし": "-",      # ここでは追わない
+        "治療患者数": final_tx_count,
+    })
+      
     # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
     selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
     
@@ -2313,6 +2346,21 @@ if submit_button:
         #df_vis = takamatsu(df_tx)
         #st.dataframe(df_vis)
         #st.table(df_vis)
+
+    # ★ここでフィルタリングサマリーを1つの表として出す
+    summary_df = pd.DataFrame(filter_summary)
+    summary_df = summary_df.set_index("ステップ")
+
+    st.markdown("### フィルタリングによる症例数の推移")
+    st.table(summary_df)
+
+    st.markdown(
+        f"""
+        **現在のグラフ対象**  
+        - 治療患者：{final_tx_count} 人  
+        - 経過観察のみ：{final_co_count} 人
+        """
+    )
       
     st.write('▶を押すと治療前後の変化が見られます。')
     animate_BI_PSR(filtered_df0, filtered_df)
