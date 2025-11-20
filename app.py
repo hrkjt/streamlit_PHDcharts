@@ -2527,50 +2527,112 @@ if submit_button:
     # ---------------------------------------------
     # クリニック間比較（選択されたクリニックが2つ以上のとき）
     # ---------------------------------------------
-    if len(clinic_filter) > 1:
+import itertools
 
+# ---------------------------------------------
+# クリニック間比較：「全院 vs 各院」バージョン
+# ---------------------------------------------
+
+# 「全院」が選ばれているか確認
+if "全院" in clinic_filter:
+    # 「全院」に対応する母集団（全院のデータ）
+    # ※「全院」選択時は filtered_df_tx_pre_post に全クリニックが入っている想定
+    df_all = filtered_df_tx_pre_post.copy()
+
+    # 比較対象とする「各院」＝ clinic_filter から「全院」を除いたもの
+    clinics_each = [c for c in clinic_filter if c != "全院"]
+
+    # 「全院」だけが選ばれている場合は比較する相手がいないのでスキップ
+    if len(clinics_each) == 0:
+        st.info("クリニック間比較を行うには、「全院」に加えて少なくとも1つ以上のクリニックを選択してください。")
+    else:
         st.markdown("---")
         st.markdown(
             '<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">'
-            'クリニック間比較（ヘルメット選択・月齢・治療期間フィルタ後のデータ）'
+            'クリニック間比較（全院 vs 各院：ヘルメット選択・月齢・治療期間フィルタ後のデータ）'
             '</div>',
             unsafe_allow_html=True
         )
 
-        # 頭囲は graham_compare 対象外なので除外
+        # 例：頭囲を除外したい場合
         compare_parameters = [p for p in target_parameters if p != '頭囲']
 
-        # クリニックの全ペアを作成（順不同）
-        clinic_pairs = list(itertools.combinations(clinic_filter, 2))
+        # 「全院 vs 各院」を順番に比較
+        for clinic_name in clinics_each:
+            df_c = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == clinic_name]
 
-        for c1, c2 in clinic_pairs:
-            df_c1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c1]
-            df_c2 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c2]
+            n_all = df_all['ダミーID'].nunique()
+            n_c   = df_c['ダミーID'].nunique()
 
-            n1 = df_c1['ダミーID'].nunique()
-            n2 = df_c2['ダミーID'].nunique()
+            st.write("")
+            st.write(f"【全院 vs {clinic_name}】")
+            st.write(f"全院：{n_all}人,  {clinic_name}：{n_c}人")
 
-            st.write('')
-            st.write(f'【{c1} vs {c2}】')
-            st.write(f'{c1}：{n1}人,  {c2}：{n2}人')
-
-            # データがほぼ無い組み合わせはスキップしてもよい
-            if (n1 == 0) or (n2 == 0):
-                st.write('　※どちらかのクリニックに該当症例がありません')
+            if (n_all == 0) or (n_c == 0):
+                st.write("　※どちらかに該当症例がありません")
+                st.markdown('---')
                 continue
 
             for parameter in compare_parameters:
-                st.write('')
-                st.write(f'▶ {parameter} の治療前後の変化（{c1} vs {c2}）')
+                st.write("")
+                st.write(f"▶ {parameter} の治療前後の変化（全院 vs {clinic_name}）")
+
                 graham_compare(
-                    df_c1, df_c2,
+                    df_all,
+                    df_c,
                     parameter,
-                    label1=c1,
-                    label2=c2,
+                    label1="全院",
+                    label2=clinic_name,
                     border=False,
-                    x_limit=max_value
+                    x_limit=max_value,   # 既存コードで使っている上限があれば
                 )
                 st.markdown('---')
+
+# 「全院」が含まれていない場合は、必要に応じて従来の「クリニック同士の全組み合わせ比較」を使う
+elif len(clinic_filter) > 1:
+    # ここは前に送った「全組み合わせ版」をそのまま置いておけばOK
+    clinic_pairs = list(itertools.combinations(clinic_filter, 2))
+
+    st.markdown("---")
+    st.markdown(
+        '<div style="text-align: left; color:black; font-size:24px; font-weight: bold;">'
+        'クリニック間比較（ヘルメット選択・月齢・治療期間フィルタ後のデータ）'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    compare_parameters = [p for p in target_parameters if p != '頭囲']
+
+    for c1, c2 in clinic_pairs:
+        df_c1 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c1]
+        df_c2 = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'] == c2]
+
+        n1 = df_c1['ダミーID'].nunique()
+        n2 = df_c2['ダミーID'].nunique()
+
+        st.write("")
+        st.write(f"【{c1} vs {c2}】")
+        st.write(f"{c1}：{n1}人,  {c2}：{n2}人")
+
+        if (n1 == 0) or (n2 == 0):
+            st.write("　※どちらかのクリニックに該当症例がありません")
+            st.markdown('---')
+            continue
+
+        for parameter in compare_parameters:
+            st.write("")
+            st.write(f"▶ {parameter} の治療前後の変化（{c1} vs {c2}）")
+
+            graham_compare(
+                df_c1,
+                df_c2,
+                parameter,
+                label1=c1,
+                label2=c2,
+                border=False,
+                x_limit=max_value,
+            )
+            st.markdown('---')
 
     #df_vis = takamatsu(filtered_df_tx_pre_post)
     #st.dataframe(df_vis)
