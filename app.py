@@ -2152,6 +2152,60 @@ if submit_button:
   if not filter_pass_all and not filter_pass0 and not filter_pass1 and not filter_pass2 and not filter_pass3:
     st.write('一つ以上のチェックボックスを選択してください')
   else:
+    # ▼ ここから追加：フィルタ前（全体）の人数サマリ
+    all_first_ids = df_first['ダミーID'].unique()
+    all_co_ids    = df_co['ダミーID'].unique()
+    all_tx_ids    = df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['ダミーID'].unique()
+
+    all_no_fu_ids = set(all_first_ids) - set(all_co_ids) - set(all_tx_ids)
+
+    st.markdown('### フィルタ前（全体）の人数')
+    st.write('初診患者：', len(all_first_ids), '人')
+    st.write('無治療で経過観察された患者：', len(all_co_ids), '人')
+    st.write('無治療で経過観察されなかった患者：', len(all_no_fu_ids), '人')
+    st.write('治療患者：', len(all_tx_ids), '人')
+    st.markdown('---')
+
+    # ▼ ここから追加：クリニック別のフィルタ前人数サマリ
+    # clinic_filter に "全員" が含まれている場合は全クリニックを対象
+    # クリニックの選択肢の変数名が違う場合は clinic_filter を適宜変更してください
+    if 'clinic_filter' in locals():
+        if ('全員' in clinic_filter) or (len(clinic_filter) == 0):
+            target_clinics = df_first['クリニック'].dropna().unique()
+        else:
+            target_clinics = [c for c in clinic_filter if c != '全員']
+    else:
+        # クリニックフィルタを使っていない場合は、データに含まれる全クリニック
+        target_clinics = df_first['クリニック'].dropna().unique()
+
+    clinic_rows = []
+    for clinic_name in target_clinics:
+        # 各クリニックごとの初診／経過観察／治療後のダミーIDセット
+        first_ids_clinic = df_first[df_first['クリニック'] == clinic_name]['ダミーID'].unique()
+        co_ids_clinic    = df_co[df_co['クリニック'] == clinic_name]['ダミーID'].unique()
+        tx_ids_clinic    = df_tx_pre_post[
+            (df_tx_pre_post['クリニック'] == clinic_name) &
+            (df_tx_pre_post['治療ステータス'] == '治療後')
+        ]['ダミーID'].unique()
+
+        # 無治療で経過観察されなかった患者 = 初診 - 経過観察 - 治療
+        no_fu_ids_clinic = set(first_ids_clinic) - set(co_ids_clinic) - set(tx_ids_clinic)
+
+        clinic_rows.append({
+            'クリニック': clinic_name,
+            '初診患者数': len(first_ids_clinic),
+            '無治療で経過観察された患者数': len(co_ids_clinic),
+            '無治療で経過観察されなかった患者数': len(no_fu_ids_clinic),
+            '治療患者数': len(tx_ids_clinic),
+        })
+
+    clinic_summary_df = pd.DataFrame(clinic_rows)
+
+    st.markdown('### クリニック別のフィルタ前人数')
+    st.dataframe(clinic_summary_df, use_container_width=True)
+    st.markdown('---')
+
+      
     target_parameters = selected_parameters or parameters
       
     st.write('選択された治療期間（治療前スキャン〜治療後スキャンの間隔）：', str(min_value), "〜", str(max_value), "か月")
@@ -2282,6 +2336,21 @@ if submit_button:
         "経過観察なし": "-",      # ここでは追わない
         "治療患者数": final_tx_count,
     })
+
+    # ★ここでフィルタリングサマリーを1つの表として出す
+    summary_df = pd.DataFrame(filter_summary)
+    summary_df = summary_df.set_index("ステップ")
+
+    st.markdown("### フィルタリングによる症例数の推移")
+    st.table(summary_df)
+
+    st.markdown(
+        f"""
+        **現在のグラフ対象**  
+        - 治療患者：{final_tx_count} 人  
+        - 経過観察のみ：{final_co_count} 人
+        """
+    )      
       
     # フォーム定義の後ろ・サマリーブロックの直前あたりにこれを置く
     selected_clinics_for_summary = st.session_state.get('selected_clinics', ["全院"])
@@ -2346,21 +2415,6 @@ if submit_button:
         #df_vis = takamatsu(df_tx)
         #st.dataframe(df_vis)
         #st.table(df_vis)
-
-    # ★ここでフィルタリングサマリーを1つの表として出す
-    summary_df = pd.DataFrame(filter_summary)
-    summary_df = summary_df.set_index("ステップ")
-
-    st.markdown("### フィルタリングによる症例数の推移")
-    st.table(summary_df)
-
-    st.markdown(
-        f"""
-        **現在のグラフ対象**  
-        - 治療患者：{final_tx_count} 人  
-        - 経過観察のみ：{final_co_count} 人
-        """
-    )
       
     st.write('▶を押すと治療前後の変化が見られます。')
     animate_BI_PSR(filtered_df0, filtered_df)
