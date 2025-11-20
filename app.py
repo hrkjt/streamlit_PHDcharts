@@ -2167,13 +2167,13 @@ if submit_button:
     st.markdown('---')
 
     # ▼ ここから追加：クリニック別のフィルタ前人数サマリ
-    # clinic_filter に "全員" が含まれている場合は全クリニックを対象
+    # clinic_filter に "全院" が含まれている場合は全クリニックを対象
     # クリニックの選択肢の変数名が違う場合は clinic_filter を適宜変更してください
     if 'clinic_filter' in locals():
-        if ('全員' in clinic_filter) or (len(clinic_filter) == 0):
+        if ('全院' in clinic_filter) or (len(clinic_filter) == 0):
             target_clinics = df_first['クリニック'].dropna().unique()
         else:
-            target_clinics = [c for c in clinic_filter if c != '全員']
+            target_clinics = [c for c in clinic_filter if c != '全院']
     else:
         # クリニックフィルタを使っていない場合は、データに含まれる全クリニック
         target_clinics = df_first['クリニック'].dropna().unique()
