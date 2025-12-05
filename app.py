@@ -254,6 +254,31 @@ def map_clinic(dummy_id):
 for _df in [df_first, df_tx_pre_post, df_co]:
     _df['クリニック'] = _df['ダミーID'].apply(map_clinic)
 
+# クリニック列付与のあとに追加（★デバッグ①）
+st.markdown("### デバッグ：クリニック割り当て状況（df_first / df_tx_pre_post / df_co / df_c）")
+
+debug_dfs = {
+    "df_first": df_first,
+    "df_tx_pre_post": df_tx_pre_post,
+    "df_co": df_co,
+    "df_c（患者数）": df_c,
+}
+
+# ★デバッグ：ダミーIDの先頭文字分布（想定と違う場合、map_clinicの条件がズレている可能性）
+st.markdown("### デバッグ：df_c ダミーID先頭文字の分布")
+df_c["dummy_prefix"] = df_c["ダミーID"].astype(str).str[:1]
+st.write(df_c["dummy_prefix"].value_counts())
+
+for name, _df in debug_dfs.items():
+    if "クリニック" in _df.columns:
+        st.write(f"#### {name} クリニック別件数")
+        st.write(_df["クリニック"].value_counts(dropna=False))
+        # 代表的な行も少しだけ表示
+        st.dataframe(_df[["ダミーID", "クリニック"]].head(10))
+    else:
+        st.write(f"#### {name} にはまだ「クリニック」列がありません")
+
+
 # ★ここを追加：各データフレームにクリニック列を付与
 # df_first["クリニック"]      = df_first["ダミーID"].apply(map_clinic)
 # df_tx_pre_post["クリニック"] = df_tx_pre_post["ダミーID"].apply(map_clinic)
@@ -1966,6 +1991,17 @@ df_tx_pivot = df_treat.pivot_table(
 # ▼ 3) クリニック別 累積
 df_tx_pivot_cum = df_tx_pivot.cumsum()
 
+# ★デバッグ②：クリニック別患者数データの列確認
+st.markdown("### デバッグ：クリニック別累積患者数データ（df_pivot_cum / df_tx_pivot_cum）")
+st.write("df_pivot_cum の列（初診患者累積）:", list(df_pivot_cum.columns))
+st.write("df_tx_pivot_cum の列（治療患者累積）:", list(df_tx_pivot_cum.columns))
+
+# ついでに直近数行を表示
+st.write("df_pivot_cum の先頭:")
+st.dataframe(df_pivot_cum.head())
+st.write("df_tx_pivot_cum の先頭:")
+st.dataframe(df_tx_pivot_cum.head())
+
 # ▼ index を揃えて（初診側に合わせる）、治療割合を計算
 # df_tx_pivot_cum_aligned = df_tx_pivot_cum.reindex(df_pivot_cum.index, fill_value=0)
 df_tx_pivot_cum_aligned = (
@@ -2363,7 +2399,18 @@ if submit_button:
         clinic_filter = clinics  # ["日本橋", "関西", "表参道", "福岡"]
     else:
         clinic_filter = [c for c in selected_clinics if c != "全院"]
+
+    # ★デバッグ③-1：選択されたクリニックの確認
+    st.markdown("### デバッグ：クリニックフィルタの状態")
+    st.write("multiselect で選択されたクリニック（selected_clinics）:", selected_clinics)
     
+    if ("全院" in selected_clinics) or (len(selected_clinics) == 0):
+        clinic_filter = clinics  # ["日本橋", "関西", "表参道", "福岡"]
+    else:
+        clinic_filter = [c for c in selected_clinics if c != "全院"]
+    
+    st.write("実際にフィルタに使用する clinic_filter:", clinic_filter)
+      
     filtered_df_first       = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
     filtered_df             = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
     filtered_df_co          = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
@@ -2407,6 +2454,17 @@ if submit_button:
         "治療患者数": filtered_tx_count,
     })      
 
+    # ★デバッグ③-2：月齢フィルタ後のクリニック別件数
+    st.markdown("#### デバッグ：① 月齢フィルタ後のクリニック別件数")
+    st.write("filtered_df_first（初診）のクリニック別件数:")
+    st.write(filtered_df_first["クリニック"].value_counts(dropna=False))
+    
+    st.write("filtered_df_co（経過観察）のクリニック別件数:")
+    st.write(filtered_df_co["クリニック"].value_counts(dropna=False))
+    
+    st.write("filtered_df_tx_pre_post（治療前後全データ）のクリニック別件数:")
+    st.write(filtered_df_tx_pre_post["クリニック"].value_counts(dropna=False))
+      
     # 治療期間でフィルタ
     filtered_df = filtered_df[
         (filtered_df['治療期間'] >= min_value) & (filtered_df['治療期間'] <= max_value)
@@ -2456,6 +2514,13 @@ if submit_button:
         "治療患者数": filtered_tx_count,
     })
 
+    # ★デバッグ③-3：治療期間フィルタ後のクリニック別件数
+    st.markdown("#### デバッグ：② 治療期間フィルタ後のクリニック別件数")
+    st.write("filtered_df_co（経過観察）のクリニック別件数:")
+    st.write(filtered_df_co["クリニック"].value_counts(dropna=False))
+    
+    st.write("filtered_df_tx_pre_post（治療前後全データ）のクリニック別件数:")
+    st.write(filtered_df_tx_pre_post["クリニック"].value_counts(dropna=False))
       
     # st.write('')
     # st.write('治療期間でのフィルター結果')
