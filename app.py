@@ -29,6 +29,28 @@ data = response.json()
 
 df = pd.DataFrame(data['経過'])
 
+def debug_clinic(label, _df, id_col="ダミーID"):
+    st.markdown(f"### デバッグ：{label}")
+    st.write("件数:", len(_df))
+
+    # 先頭1文字（T/K/H/F など）の分布
+    if id_col in _df.columns:
+        tmp = (
+            _df[id_col]
+            .astype(str)
+            .str[:1]
+            .value_counts()
+            .rename_axis("dummy_prefix")
+            .reset_index(name="count")
+        )
+        st.write("dummy_prefix の分布")
+        st.table(tmp)
+
+    # クリニック列があればその分布
+    if "クリニック" in _df.columns:
+        st.write("クリニック別件数")
+        st.table(_df["クリニック"].value_counts())
+
 # まだ数値変換も dropna もする前の状態を確認
 debug_clinic("df（経過）作成直後", df)
 
@@ -116,28 +138,6 @@ category_orders={'治療前PSRレベル':['レベル1', 'レベル2', 'レベル
                    '治療前CVAI重症度':['正常', '軽症', '中等症', '重症', '最重症'],
                    '治療前の月齢':[i for i in range(15)],
                    '初診時の月齢':[i for i in range(15)]}
-
-def debug_clinic(label, _df, id_col="ダミーID"):
-    st.markdown(f"### デバッグ：{label}")
-    st.write("件数:", len(_df))
-
-    # 先頭1文字（T/K/H/F など）の分布
-    if id_col in _df.columns:
-        tmp = (
-            _df[id_col]
-            .astype(str)
-            .str[:1]
-            .value_counts()
-            .rename_axis("dummy_prefix")
-            .reset_index(name="count")
-        )
-        st.write("dummy_prefix の分布")
-        st.table(tmp)
-
-    # クリニック列があればその分布
-    if "クリニック" in _df.columns:
-        st.write("クリニック別件数")
-        st.table(_df["クリニック"].value_counts())
 
 
 def add_pre_levels(df):
