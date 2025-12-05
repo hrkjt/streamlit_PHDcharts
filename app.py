@@ -29,6 +29,18 @@ data = response.json()
 
 df = pd.DataFrame(data['経過'])
 
+# まだ数値変換も dropna もする前の状態を確認
+debug_clinic("df（経過）作成直後", df)
+
+parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
+df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
+df = df.dropna()
+df = df.sort_values('月齢')
+
+# dropna したあとで K/H/F が消えていないか確認
+debug_clinic("df（経過）数値変換＋dropna 後", df)
+
+
 parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
 df = df.dropna()
@@ -104,6 +116,29 @@ category_orders={'治療前PSRレベル':['レベル1', 'レベル2', 'レベル
                    '治療前CVAI重症度':['正常', '軽症', '中等症', '重症', '最重症'],
                    '治療前の月齢':[i for i in range(15)],
                    '初診時の月齢':[i for i in range(15)]}
+
+def debug_clinic(label, _df, id_col="ダミーID"):
+    st.markdown(f"### デバッグ：{label}")
+    st.write("件数:", len(_df))
+
+    # 先頭1文字（T/K/H/F など）の分布
+    if id_col in _df.columns:
+        tmp = (
+            _df[id_col]
+            .astype(str)
+            .str[:1]
+            .value_counts()
+            .rename_axis("dummy_prefix")
+            .reset_index(name="count")
+        )
+        st.write("dummy_prefix の分布")
+        st.table(tmp)
+
+    # クリニック列があればその分布
+    if "クリニック" in _df.columns:
+        st.write("クリニック別件数")
+        st.table(_df["クリニック"].value_counts())
+
 
 def add_pre_levels(df):
   df['治療前PSRレベル'] = ''
@@ -253,6 +288,13 @@ def map_clinic(dummy_id):
 # df_tx_pre_post, df_first, df_co を作り終わったあたりに追加
 for _df in [df_first, df_tx_pre_post, df_co]:
     _df['クリニック'] = _df['ダミーID'].apply(map_clinic)
+
+# ここでそれぞれの分布を画面に表示
+debug_clinic("df_first（治療前データ）", df_first)
+debug_clinic("df_tx_pre_post（治療前＋治療後データ）", df_tx_pre_post)
+debug_clinic("df_co（経過観察データ）", df_co)
+debug_clinic("df_h（ヘルメットデータ）", df_h)
+debug_clinic("df_c（患者数データ）", df_c, id_col="ダミーID")
 
 # クリニック列付与のあとに追加（★デバッグ①）
 st.markdown("### デバッグ：クリニック割り当て状況（df_first / df_tx_pre_post / df_co / df_c）")
