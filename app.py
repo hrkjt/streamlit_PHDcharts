@@ -32,8 +32,8 @@ df = pd.DataFrame(data['経過'])
 parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
 
-# ★重要：dropna() を全列対象にしない（院ごとの欠損で母集団が削れるのを防ぐ）
-need_cols = ['ダミーID', '治療ステータス'] + parameters
+# ここでは「ID/ステータス/月齢」くらいに留める（院ごとの欠損で母集団が消えるのを防ぐ）
+need_cols = ['ダミーID', '治療ステータス', '月齢']
 df = df.dropna(subset=need_cols)
 
 df = df.sort_values('月齢')
@@ -242,16 +242,24 @@ st.set_page_config(page_title='位置的頭蓋変形に関するデータの可�
 
 clinics = ["日本橋", "関西", "表参道", "福岡"]
 
+def norm_id(x) -> str:
+    if x is None:
+        return ""
+    s = str(x).strip().upper()
+    # 末尾C（経過観察）対策：大文字化してから末尾だけ落とす
+    if s.endswith("C"):
+        s = s[:-1]
+    return s
+
 def map_clinic(dummy_id):
-    if isinstance(dummy_id, str) and len(dummy_id) > 0:
-        # 経過観察で末尾に付けた "C" を除去
-        if dummy_id.endswith("C"):
-            dummy_id = dummy_id[:-1]
-        
-        if dummy_id.startswith("T"): return "日本橋"
-        if dummy_id.startswith("K"): return "関西"
-        if dummy_id.startswith("H"): return "表参道"
-        if dummy_id.startswith("F"): return "福岡"
+    s = norm_id(dummy_id)
+    if not s:
+        return "不明"
+
+    if s.startswith("T"): return "日本橋"
+    if s.startswith("K"): return "関西"
+    if s.startswith("H"): return "表参道"
+    if s.startswith("F"): return "福岡"
     return "不明"
 
 # df_tx_pre_post, df_first, df_co を作り終わったあたりに追加
@@ -270,7 +278,9 @@ def hist(parameter='短頭率', df_first=df_first):
 
   all_number = len(df_first['ダミーID'].unique())
 
+  df_first = df_first.copy()
   df_first[parameter] = pd.to_numeric(df_first[parameter], errors='coerce')
+  df_first = df_first.dropna(subset=[parameter])          # ← この指標だけ必須にする
   df_first[parameter] = df_first[parameter].round()
 
   df_first_tx = df_first[df_first['ダミーID'].isin(treated_patients)]
@@ -2185,9 +2195,11 @@ if submit_button:
     df_tx_pre_post['ダミーID'] = df_tx_pre_post['ダミーID'].astype(str)
 
     # ★dummy_base を全DFで統一（末尾Cが混ざっても壊れない）
-    df_first['dummy_base']       = df_first['ダミーID'].astype(str).str.rstrip('C')
-    df_co['dummy_base']          = df_co['ダミーID'].astype(str).str.rstrip('C')
-    df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID'].astype(str).str.rstrip('C')
+    df_first['dummy_base']       = df_first['ダミーID'].apply(norm_id)
+    df_co['dummy_base']          = df_co['ダミーID'].apply(norm_id)
+    df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID'].apply(norm_id)
+    
+    df_c['dummy_base'] = df_c['ダミーID'].apply(norm_id)
     
     # ★clinic も dummy_base 基準で一応作り直しておく（安全策）
     df_first['クリニック']       = df_first['dummy_base'].apply(map_clinic)
@@ -2209,6 +2221,16 @@ if submit_button:
     
     # 無治療で経過観察されなかった患者 = 初診にいるが co にも tx にも出てこない
     all_no_fu_ids = all_first_ids - all_co_ids - all_tx_ids
+    
+    st.write("pop_all clinic counts", pop_all["クリニック"].value_counts())
+    st.write("df_co clinic counts", df_co["クリニック"].value_counts())
+    st.write("df_tx_pre_post(治療後) clinic counts",
+             df_tx_pre_post[df_tx_pre_post["治療ステータス"]=="治療後"]["クリニック"].value_counts())
+    
+    # 初診母集団とco/txのID一致数
+    first_all = set(pop_all["dummy_base"])
+    st.write("co in first", len(set(df_co["dummy_base"]) & first_all))
+    st.write("tx in first", len(set(df_tx_pre_post[df_tx_pre_post["治療ステータス"]=="治療後"]["dummy_base"]) & first_all))
     
     st.markdown('### フィルタ前（全体）の人数')
     st.write('初診患者：', len(all_first_ids), '人')
