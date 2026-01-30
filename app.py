@@ -233,6 +233,17 @@ df_co['治療前の月齢'] = df_co['治療前月齢'].apply(lambda x: np.floor(
 
 df_co = add_post_levels(df_co)
 
+def drop_invalid_dummy_id(df):
+    return df[
+        df["ダミーID"].notna() &
+        (df["ダミーID"].astype(str).str.strip() != "")
+    ]
+
+df_first        = drop_invalid_dummy_id(df_first)
+df_co           = drop_invalid_dummy_id(df_co)
+df_tx_pre_post  = drop_invalid_dummy_id(df_tx_pre_post)
+df_h            = drop_invalid_dummy_id(df_h)
+
 # Streamlitアプリのページ設定
 st.set_page_config(page_title='位置的頭蓋変形に関するデータの可視化', page_icon="📊", layout='wide')
 
