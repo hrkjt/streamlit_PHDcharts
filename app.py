@@ -1428,9 +1428,9 @@ def animate_BI_PSR(df0, df):
   common_patients = set(df1['ダミーID'].unique()) & (set(df0['ダミーID'].unique()))
 
   df = pd.concat([df0, df1])
-  st.write("after concat:", df.shape)
+  # st.write("after concat:", df.shape)
   df = df[df['ダミーID'].isin(common_patients)]
-  st.write("after common_patients:", df.shape)
+  # st.write("after common_patients:", df.shape)
 
   #複数のヘルメットを使用している患者を除外
   df_helmet = df[df['ヘルメット'] != '経過観察']
@@ -1438,12 +1438,12 @@ def animate_BI_PSR(df0, df):
   common_patients = helmet_counts[helmet_counts > 1].index.tolist()
 
   df = df[~df['ダミーID'].isin(common_patients)]
-  st.write("after multi-helmet drop:", df.shape)
-  st.write(
-      "【DEBUG animate_BI_PSR】",
-      "shape:", df.shape,
-      "helmets:", df["ヘルメット"].unique()
-  )
+  # st.write("after multi-helmet drop:", df.shape)
+  # st.write(
+  #     "【DEBUG animate_BI_PSR】",
+  #     "shape:", df.shape,
+  #     "helmets:", df["ヘルメット"].unique()
+  # )
     
   fig = px.scatter(df, x='短頭率', y='後頭部対称率', color='治療前PSRレベル', symbol='治療前短頭症', facet_col = 'ヘルメット',
                    hover_data=['ダミーID', '治療期間', '治療前月齢', 'ヘルメット'] + parameters, category_orders=category_orders, animation_frame='治療ステータス', animation_group='ダミーID', color_discrete_sequence=colors)
