@@ -2180,12 +2180,14 @@ if submit_button:
     df_first['dummy_base']      = df_first['ダミーID']  # 初診はそのまま
     df_co['dummy_base']         = df_co['ダミーID'].str.rstrip('C')  # 末尾のCを削る
     df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID']        # ここもそのまま
-      
-    # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
     
-    all_first_ids = set(df_first['dummy_base'].unique())
-    all_co_ids    = set(df_co['dummy_base'].unique()) & all_first_ids
-    all_tx_ids    = set(
+    # ★初診母集団は df_c（患者数）から取る
+    df_c['ダミーID'] = df_c['ダミーID'].astype(str)
+    all_first_ids = set(df_c['ダミーID'].unique())
+    
+    # 経過観察・治療側は dummy_base で統一（C付き対策）
+    all_co_ids = set(df_co['dummy_base'].unique()) & all_first_ids
+    all_tx_ids = set(
         df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['dummy_base'].unique()
     ) & all_first_ids
     
@@ -2217,12 +2219,12 @@ if submit_button:
     clinic_rows = []
     for clinic_name in target_clinics:
         # 各クリニックごとの初診／経過観察／治療後のダミーIDセット
-        first_ids_clinic = df_first[df_first['クリニック'] == clinic_name]['ダミーID'].unique()
-        co_ids_clinic    = df_co[df_co['クリニック'] == clinic_name]['ダミーID'].unique()
+        first_ids_clinic = df_first[df_first['クリニック'] == clinic_name]['dummy_base'].unique()
+        co_ids_clinic    = df_co[df_co['クリニック'] == clinic_name]['dummy_base'].unique()
         tx_ids_clinic    = df_tx_pre_post[
             (df_tx_pre_post['クリニック'] == clinic_name) &
             (df_tx_pre_post['治療ステータス'] == '治療後')
-        ]['ダミーID'].unique()
+        ]['dummy_base'].unique()
 
         # 無治療で経過観察されなかった患者 = 初診 - 経過観察 - 治療
         no_fu_ids_clinic = set(first_ids_clinic) - set(co_ids_clinic) - set(tx_ids_clinic)
