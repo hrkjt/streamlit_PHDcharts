@@ -2242,6 +2242,33 @@ if submit_button:
 
     st.markdown('### クリニック別のフィルタ前人数')
     st.dataframe(clinic_summary_df, use_container_width=True)
+
+    # ===== ここから追加：クリニック「不明」のID確認 =====
+    st.markdown("### クリニックが「不明」のダミーID一覧（フィルタ前）")
+    
+    unknown_first = df_first[df_first["クリニック"] == "不明"]["ダミーID"].dropna().astype(str).unique()
+    unknown_co    = df_co[df_co["クリニック"] == "不明"]["ダミーID"].dropna().astype(str).unique()
+    unknown_tx    = df_tx_pre_post[df_tx_pre_post["クリニック"] == "不明"]["ダミーID"].dropna().astype(str).unique()
+    unknown_h     = df_h[df_h["クリニック"] == "不明"]["ダミーID"].dropna().astype(str).unique()
+    
+    st.write("df_first（初診）不明:", len(unknown_first), "件")
+    st.dataframe(pd.DataFrame({"ダミーID": sorted(unknown_first)}), use_container_width=True)
+    
+    st.write("df_co（経過観察）不明:", len(unknown_co), "件")
+    st.dataframe(pd.DataFrame({"ダミーID": sorted(unknown_co)}), use_container_width=True)
+    
+    st.write("df_tx_pre_post（治療前後）不明:", len(unknown_tx), "件")
+    st.dataframe(pd.DataFrame({"ダミーID": sorted(unknown_tx)}), use_container_width=True)
+    
+    st.write("df_h（ヘルメットマスタ）不明:", len(unknown_h), "件")
+    st.dataframe(pd.DataFrame({"ダミーID": sorted(unknown_h)}), use_container_width=True)
+    
+    st.markdown("#### 不明IDの先頭文字（原因切り分け）")
+    if len(unknown_first) > 0:
+        prefixes = pd.Series([x[:1] if len(x) > 0 else "" for x in unknown_first]).value_counts()
+        st.dataframe(prefixes.rename_axis("prefix").reset_index(name="count"), use_container_width=True)      
+    # ===== 追加ここまで =====
+
     st.markdown('---')
 
       
