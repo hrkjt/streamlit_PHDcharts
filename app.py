@@ -2176,9 +2176,18 @@ if submit_button:
     df_first['dummy_base']      = df_first['ダミーID']  # 初診はそのまま
     df_co['dummy_base']         = df_co['ダミーID'].str.rstrip('C')  # 末尾のCを削る
     df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID']        # ここもそのまま
+
+    # ★デバッグ：クリニック割り当て状況を確認（絞り込み前）
+    st.write("DEBUG df_first クリニック内訳（絞り込み前）")
+    st.write(df_first["クリニック"].value_counts(dropna=False))
+    
+    st.write("DEBUG df_first ダミーID先頭文字")
+    st.write(df_first["ダミーID"].astype(str).str.strip().str[0].value_counts(dropna=False))
+    
+    st.write("DEBUG df_first 不明のサンプル（先頭20件）")
+    st.write(df_first[df_first["クリニック"] == "不明"]["ダミーID"].head(20).tolist())
       
     # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
-    
     all_first_ids = set(df_first['dummy_base'].unique())
     all_co_ids    = set(df_co['dummy_base'].unique()) & all_first_ids
     all_tx_ids    = set(
