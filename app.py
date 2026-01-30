@@ -1428,7 +1428,9 @@ def animate_BI_PSR(df0, df):
   common_patients = set(df1['ダミーID'].unique()) & (set(df0['ダミーID'].unique()))
 
   df = pd.concat([df0, df1])
+  st.write("after concat:", df.shape)
   df = df[df['ダミーID'].isin(common_patients)]
+  st.write("after common_patients:", df.shape)
 
   #複数のヘルメットを使用している患者を除外
   df_helmet = df[df['ヘルメット'] != '経過観察']
@@ -1436,7 +1438,13 @@ def animate_BI_PSR(df0, df):
   common_patients = helmet_counts[helmet_counts > 1].index.tolist()
 
   df = df[~df['ダミーID'].isin(common_patients)]
-
+  st.write("after multi-helmet drop:", df.shape)
+  st.write(
+      "【DEBUG animate_BI_PSR】",
+      "shape:", df.shape,
+      "helmets:", df["ヘルメット"].unique()
+  )
+    
   fig = px.scatter(df, x='短頭率', y='後頭部対称率', color='治療前PSRレベル', symbol='治療前短頭症', facet_col = 'ヘルメット',
                    hover_data=['ダミーID', '治療期間', '治療前月齢', 'ヘルメット'] + parameters, category_orders=category_orders, animation_frame='治療ステータス', animation_group='ダミーID', color_discrete_sequence=colors)
   i=0
@@ -2176,16 +2184,6 @@ if submit_button:
     df_first['dummy_base']      = df_first['ダミーID']  # 初診はそのまま
     df_co['dummy_base']         = df_co['ダミーID'].str.rstrip('C')  # 末尾のCを削る
     df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID']        # ここもそのまま
-
-    # ★デバッグ：クリニック割り当て状況を確認（絞り込み前）
-    st.write("DEBUG df_first クリニック内訳（絞り込み前）")
-    st.write(df_first["クリニック"].value_counts(dropna=False))
-    
-    st.write("DEBUG df_first ダミーID先頭文字")
-    st.write(df_first["ダミーID"].astype(str).str.strip().str[0].value_counts(dropna=False))
-    
-    st.write("DEBUG df_first 不明のサンプル（先頭20件）")
-    st.write(df_first[df_first["クリニック"] == "不明"]["ダミーID"].head(20).tolist())
       
     # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
     all_first_ids = set(df_first['dummy_base'].unique())
