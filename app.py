@@ -2470,22 +2470,28 @@ if submit_button:
     # st.write('治療患者：', str(filtered_tx_count), '人')      
 
     # チェックボックスの状態に応じてデータをフィルタリング
-    if not filter_pass0:
-        filtered_df = filtered_df[filtered_df['ヘルメット'] != 'アイメット']
-        filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'アイメット']
-        filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'アイメット']
-    if not filter_pass1:
-        filtered_df = filtered_df[filtered_df['ヘルメット'] != 'クルム']
-        filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'クルム']
-        filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'クルム']
-    if not filter_pass2:
-        filtered_df = filtered_df[filtered_df['ヘルメット'] != 'クルムフィット']
-        filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'クルムフィット']
-        filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'クルムフィット']
-    if not filter_pass3:
-        filtered_df = filtered_df[filtered_df['ヘルメット'] != '経過観察']
-        filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != '経過観察']
-        filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != '経過観察']
+    # 「全ヘルメット」がONなら個別除外はしない
+    if not filter_pass_all:
+        if not filter_pass0:
+            filtered_df = filtered_df[filtered_df['ヘルメット'] != 'アイメット']
+            filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'アイメット']
+            filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'アイメット']
+    
+        if not filter_pass1:
+            filtered_df = filtered_df[filtered_df['ヘルメット'] != 'クルム']
+            filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'クルム']
+            filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'クルム']
+    
+        if not filter_pass2:
+            filtered_df = filtered_df[filtered_df['ヘルメット'] != 'クルムフィット']
+            filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != 'クルムフィット']
+            filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != 'クルムフィット']
+    
+        if not filter_pass3:
+            filtered_df = filtered_df[filtered_df['ヘルメット'] != '経過観察']
+            filtered_df0 = filtered_df0[filtered_df0['ヘルメット'] != '経過観察']
+            filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['ヘルメット'] != '経過観察']
+
 
 
     filtered_treated_patients = filtered_df['ダミーID'].unique()
@@ -2585,6 +2591,9 @@ if submit_button:
       
     if ('短頭率' in target_parameters) & ('後頭部対称率' in target_parameters):
         st.write('▶を押すと治療前後の変化が見られます。')
+        st.write("call animate_BI_PSR:", filtered_df0.shape, filtered_df.shape,
+            filtered_df0["ヘルメット"].unique() if len(filtered_df0) else [],
+            filtered_df["ヘルメット"].unique() if len(filtered_df) else [])
         animate_BI_PSR(filtered_df0, filtered_df)
         st.markdown("---")
 
