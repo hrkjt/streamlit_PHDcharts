@@ -27,7 +27,14 @@ url = st.secrets["API_URL"]
 response = requests.get(url)
 data = response.json()
 
+def drop_invalid_dummy_id(df):
+    return df[
+        df["ダミーID"].notna() &
+        (df["ダミーID"].astype(str).str.strip() != "")
+    ]
+
 df = pd.DataFrame(data['経過'])
+df = drop_invalid_dummy_id(df)
 
 parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
@@ -35,6 +42,7 @@ df = df.dropna()
 df = df.sort_values('月齢')
 
 df_h = pd.DataFrame(data['ヘルメット'])
+df_h = drop_invalid_dummy_id(df_h)
 df_h = df_h[(df_h['ダミーID'] != '') & (df_h['ヘルメット'] != '')]
 
 df_c = pd.DataFrame(data['患者数'])
@@ -232,17 +240,6 @@ df_tx_pre_post['治療前の月齢'] = df_tx_pre_post['治療前月齢'].apply(l
 df_co['治療前の月齢'] = df_co['治療前月齢'].apply(lambda x: np.floor(x) if pd.notnull(x) else np.nan)
 
 df_co = add_post_levels(df_co)
-
-def drop_invalid_dummy_id(df):
-    return df[
-        df["ダミーID"].notna() &
-        (df["ダミーID"].astype(str).str.strip() != "")
-    ]
-
-df_first        = drop_invalid_dummy_id(df_first)
-df_co           = drop_invalid_dummy_id(df_co)
-df_tx_pre_post  = drop_invalid_dummy_id(df_tx_pre_post)
-df_h            = drop_invalid_dummy_id(df_h)
 
 # Streamlitアプリのページ設定
 st.set_page_config(page_title='位置的頭蓋変形に関するデータの可視化', page_icon="📊", layout='wide')
