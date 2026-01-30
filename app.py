@@ -31,7 +31,11 @@ df = pd.DataFrame(data['経過'])
 
 parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
-df = df.dropna()
+
+# ★重要：dropna() を全列対象にしない（院ごとの欠損で母集団が削れるのを防ぐ）
+need_cols = ['ダミーID', '治療ステータス'] + parameters
+df = df.dropna(subset=need_cols)
+
 df = df.sort_values('月齢')
 
 df_h = pd.DataFrame(data['ヘルメット'])
