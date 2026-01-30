@@ -31,11 +31,7 @@ df = pd.DataFrame(data['経過'])
 
 parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
-
-# ここでは「ID/ステータス/月齢」くらいに留める（院ごとの欠損で母集団が消えるのを防ぐ）
-need_cols = ['ダミーID', '治療ステータス', '月齢']
-df = df.dropna(subset=need_cols)
-
+df = df.dropna()
 df = df.sort_values('月齢')
 
 df_h = pd.DataFrame(data['ヘルメット'])
@@ -242,24 +238,16 @@ st.set_page_config(page_title='位置的頭蓋変形に関するデータの可�
 
 clinics = ["日本橋", "関西", "表参道", "福岡"]
 
-def norm_id(x) -> str:
-    if x is None:
-        return ""
-    s = str(x).strip().upper()
-    # 末尾C（経過観察）対策：大文字化してから末尾だけ落とす
-    if s.endswith("C"):
-        s = s[:-1]
-    return s
-
 def map_clinic(dummy_id):
-    s = norm_id(dummy_id)
-    if not s:
-        return "不明"
-
-    if s.startswith("T"): return "日本橋"
-    if s.startswith("K"): return "関西"
-    if s.startswith("H"): return "表参道"
-    if s.startswith("F"): return "福岡"
+    if isinstance(dummy_id, str) and len(dummy_id) > 0:
+        # 経過観察で末尾に付けた "C" を除去
+        if dummy_id.endswith("C"):
+            dummy_id = dummy_id[:-1]
+        
+        if dummy_id.startswith("T"): return "日本橋"
+        if dummy_id.startswith("K"): return "関西"
+        if dummy_id.startswith("H"): return "表参道"
+        if dummy_id.startswith("F"): return "福岡"
     return "不明"
 
 # df_tx_pre_post, df_first, df_co を作り終わったあたりに追加
@@ -278,9 +266,7 @@ def hist(parameter='短頭率', df_first=df_first):
 
   all_number = len(df_first['ダミーID'].unique())
 
-  df_first = df_first.copy()
   df_first[parameter] = pd.to_numeric(df_first[parameter], errors='coerce')
-  df_first = df_first.dropna(subset=[parameter])          # ← この指標だけ必須にする
   df_first[parameter] = df_first[parameter].round()
 
   df_first_tx = df_first[df_first['ダミーID'].isin(treated_patients)]
@@ -2181,38 +2167,21 @@ if submit_button:
     # st.write('治療患者：', len(all_tx_ids), '人')
     # st.markdown('---')
 
-    # ★母集団マスタ（初診の全患者）を df_c から作る：以後の人数はこれ基準にする
-    df_c['ダミーID'] = df_c['ダミーID'].astype(str)
-    df_c['dummy_base'] = df_c['ダミーID'].str.rstrip('C')  # 念のため
-    df_c['クリニック'] = df_c['ダミーID'].apply(map_clinic)
-    
-    pop_all = df_c[['dummy_base', 'クリニック']].drop_duplicates()
-    pop_all_ids = set(pop_all['dummy_base'])
-      
     # まず全て文字列に
     df_first['ダミーID']      = df_first['ダミーID'].astype(str)
     df_co['ダミーID']         = df_co['ダミーID'].astype(str)
     df_tx_pre_post['ダミーID'] = df_tx_pre_post['ダミーID'].astype(str)
 
-    # ★dummy_base を全DFで統一（末尾Cが混ざっても壊れない）
-    df_first['dummy_base']       = df_first['ダミーID'].apply(norm_id)
-    df_co['dummy_base']          = df_co['ダミーID'].apply(norm_id)
-    df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID'].apply(norm_id)
+    # サマリ計算用の「ベースID」を追加
+    df_first['dummy_base']      = df_first['ダミーID']  # 初診はそのまま
+    df_co['dummy_base']         = df_co['ダミーID'].str.rstrip('C')  # 末尾のCを削る
+    df_tx_pre_post['dummy_base'] = df_tx_pre_post['ダミーID']        # ここもそのまま
+      
+    # ▼ フィルタ前（全体）の人数サマリ（dummy_base でそろえる）
     
-    df_c['dummy_base'] = df_c['ダミーID'].apply(norm_id)
-    
-    # ★clinic も dummy_base 基準で一応作り直しておく（安全策）
-    df_first['クリニック']       = df_first['dummy_base'].apply(map_clinic)
-    df_co['クリニック']          = df_co['dummy_base'].apply(map_clinic)
-    df_tx_pre_post['クリニック'] = df_tx_pre_post['dummy_base'].apply(map_clinic)
-    
-    # ★初診母集団は df_c（患者数）から取る
-    df_c['ダミーID'] = df_c['ダミーID'].astype(str)
-    all_first_ids = set(df_c['ダミーID'].unique())
-    
-    # 経過観察・治療側は dummy_base で統一（C付き対策）
-    all_co_ids = set(df_co['dummy_base'].unique()) & all_first_ids
-    all_tx_ids = set(
+    all_first_ids = set(df_first['dummy_base'].unique())
+    all_co_ids    = set(df_co['dummy_base'].unique()) & all_first_ids
+    all_tx_ids    = set(
         df_tx_pre_post[df_tx_pre_post['治療ステータス'] == '治療後']['dummy_base'].unique()
     ) & all_first_ids
     
@@ -2221,16 +2190,6 @@ if submit_button:
     
     # 無治療で経過観察されなかった患者 = 初診にいるが co にも tx にも出てこない
     all_no_fu_ids = all_first_ids - all_co_ids - all_tx_ids
-    
-    st.write("pop_all clinic counts", pop_all["クリニック"].value_counts())
-    st.write("df_co clinic counts", df_co["クリニック"].value_counts())
-    st.write("df_tx_pre_post(治療後) clinic counts",
-             df_tx_pre_post[df_tx_pre_post["治療ステータス"]=="治療後"]["クリニック"].value_counts())
-    
-    # 初診母集団とco/txのID一致数
-    first_all = set(pop_all["dummy_base"])
-    st.write("co in first", len(set(df_co["dummy_base"]) & first_all))
-    st.write("tx in first", len(set(df_tx_pre_post[df_tx_pre_post["治療ステータス"]=="治療後"]["dummy_base"]) & first_all))
     
     st.markdown('### フィルタ前（全体）の人数')
     st.write('初診患者：', len(all_first_ids), '人')
@@ -2242,49 +2201,42 @@ if submit_button:
     # ▼ ここから追加：クリニック別のフィルタ前人数サマリ
     # clinic_filter に "全院" が含まれている場合は全クリニックを対象
     # クリニックの選択肢の変数名が違う場合は clinic_filter を適宜変更してください
-    # ▼ クリニック別のフィルタ前人数サマリ（★母集団は df_c(pop_all) 基準）
-    if ("全院" in selected_clinics) or (len(selected_clinics) == 0):
-        target_clinics = clinics  # ["日本橋","関西","表参道","福岡"]
+    if 'clinic_filter' in locals():
+        if ('全院' in clinic_filter) or (len(clinic_filter) == 0):
+            target_clinics = df_first['クリニック'].dropna().unique()
+        else:
+            target_clinics = [c for c in clinic_filter if c != '全院']
     else:
-        target_clinics = [c for c in selected_clinics if c != "全院"]
-    
+        # クリニックフィルタを使っていない場合は、データに含まれる全クリニック
+        target_clinics = df_first['クリニック'].dropna().unique()
+
     clinic_rows = []
-    
-    # 初診母集団（df_c由来）
-    # pop_all: columns = ['dummy_base','クリニック'] を上で作っている想定
     for clinic_name in target_clinics:
-        first_ids_clinic = set(
-            pop_all[pop_all['クリニック'] == clinic_name]['dummy_base'].unique()
-        )
-    
-        # 経過観察（co）と治療（tx）は dummy_base で集計し、母集団に合わせて絞る
-        co_ids_clinic = set(
-            df_co[df_co['クリニック'] == clinic_name]['dummy_base'].unique()
-        ) & first_ids_clinic
-    
-        tx_ids_clinic = set(
-            df_tx_pre_post[
-                (df_tx_pre_post['クリニック'] == clinic_name) &
-                (df_tx_pre_post['治療ステータス'] == '治療後')
-            ]['dummy_base'].unique()
-        ) & first_ids_clinic
-    
-        co_only_ids_clinic = co_ids_clinic - tx_ids_clinic
-        no_fu_ids_clinic   = first_ids_clinic - co_ids_clinic - tx_ids_clinic
-    
+        # 各クリニックごとの初診／経過観察／治療後のダミーIDセット
+        first_ids_clinic = df_first[df_first['クリニック'] == clinic_name]['ダミーID'].unique()
+        co_ids_clinic    = df_co[df_co['クリニック'] == clinic_name]['ダミーID'].unique()
+        tx_ids_clinic    = df_tx_pre_post[
+            (df_tx_pre_post['クリニック'] == clinic_name) &
+            (df_tx_pre_post['治療ステータス'] == '治療後')
+        ]['ダミーID'].unique()
+
+        # 無治療で経過観察されなかった患者 = 初診 - 経過観察 - 治療
+        no_fu_ids_clinic = set(first_ids_clinic) - set(co_ids_clinic) - set(tx_ids_clinic)
+
         clinic_rows.append({
             'クリニック': clinic_name,
             '初診患者数': len(first_ids_clinic),
-            '無治療で経過観察された患者数': len(co_only_ids_clinic),
+            '無治療で経過観察された患者数': len(co_ids_clinic),
             '無治療で経過観察されなかった患者数': len(no_fu_ids_clinic),
             '治療患者数': len(tx_ids_clinic),
         })
-    
+
     clinic_summary_df = pd.DataFrame(clinic_rows)
-    
+
     st.markdown('### クリニック別のフィルタ前人数')
     st.dataframe(clinic_summary_df, use_container_width=True)
     st.markdown('---')
+
       
     target_parameters = selected_parameters or parameters
       
@@ -2393,9 +2345,9 @@ if submit_button:
     # スライダーで選択された範囲でデータをフィルタリング
 
     # 月齢でフィルタ
-    # filtered_df_first = df_first[
-    #     (df_first['月齢'] >= min_age) & (df_first['月齢'] <= max_age)
-    # ]
+    filtered_df_first = df_first[
+        (df_first['月齢'] >= min_age) & (df_first['月齢'] <= max_age)
+    ]
     filtered_df = filtered_df[
         (filtered_df['治療前月齢'] >= min_age) & (filtered_df['治療前月齢'] <= max_age)
     ]
@@ -2412,7 +2364,7 @@ if submit_button:
     else:
         clinic_filter = [c for c in selected_clinics if c != "全院"]
     
-    # filtered_df_first       = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
+    filtered_df_first       = filtered_df_first[filtered_df_first['クリニック'].isin(clinic_filter)]
     filtered_df             = filtered_df[filtered_df['クリニック'].isin(clinic_filter)]
     filtered_df_co          = filtered_df_co[filtered_df_co['クリニック'].isin(clinic_filter)]
     filtered_df_tx_pre_post = filtered_df_tx_pre_post[filtered_df_tx_pre_post['クリニック'].isin(clinic_filter)]   
@@ -2420,20 +2372,7 @@ if submit_button:
     # ===== ここから ID 集計は dummy_base でそろえる =====
 
     # このステップで対象となる「初診患者」
-    # filtered_first_members = filtered_df_first['dummy_base'].unique()
-    # filtered_first_count = len(filtered_first_members)
-
-    # ★母集団(pop_all)に、初診時月齢(=df_firstの治療前月齢相当)を付ける
-    df_first_age = df_first[['dummy_base', '月齢']].drop_duplicates('dummy_base')
-    pop_with_age = pop_all.merge(df_first_age, on='dummy_base', how='left')
-    
-    # ★月齢フィルタ：月齢が取れている人だけが対象（ここは仕様として一貫）
-    pop_age_filtered = pop_with_age[pop_with_age['月齢'].between(min_age, max_age)]
-    
-    # ★クリニックフィルタも母集団側でやる
-    pop_age_clinic_filtered = pop_age_filtered[pop_age_filtered['クリニック'].isin(clinic_filter)]
-    
-    filtered_first_members = pop_age_clinic_filtered['dummy_base'].unique()
+    filtered_first_members = filtered_df_first['dummy_base'].unique()
     filtered_first_count = len(filtered_first_members)
 
     # 経過観察・治療の「全体（フィルタ前）」の ID
@@ -2547,11 +2486,8 @@ if submit_button:
     filtered_df0 = filtered_df0[filtered_df0['ダミーID'].isin(filtered_treated_patients)]  
 
     # ★最終的な対象人数をここで集計
-    # final_tx_count = filtered_df['ダミーID'].nunique()
-    # final_co_count = filtered_df_co['ダミーID'].nunique() if filter_pass3 else 0
-
-    final_tx_count = filtered_df['dummy_base'].nunique()
-    final_co_count = filtered_df_co['dummy_base'].nunique() if filter_pass3 else 0
+    final_tx_count = filtered_df['ダミーID'].nunique()
+    final_co_count = filtered_df_co['ダミーID'].nunique() if filter_pass3 else 0
 
     filter_summary.append({
         "ステップ": "③ ヘルメット・クリニック選択後",
@@ -2680,8 +2616,7 @@ if submit_button:
       # target_parameters = selected_parameters or parameters
       for parameter in target_parameters:
         if parameter != '頭囲':
-            # count = len(filtered_df_tx_pre_post['ダミーID'].unique())
-            count = filtered_df_tx_pre_post['dummy_base'].nunique()
+            count = len(filtered_df_tx_pre_post['ダミーID'].unique())
             st.write('')
             st.write('')
             st.write(parameter+'の治療前後の変化　', str(count), '人')
@@ -2731,8 +2666,7 @@ if submit_button:
               st.dataframe(result, width=800)
               st.markdown("---")
         else:
-          # count = len(filtered_df_tx_pre_post['ダミーID'].unique())
-          count = filtered_df_tx_pre_post['dummy_base'].nunique()
+          count = len(filtered_df_tx_pre_post['ダミーID'].unique())
           st.write('')
           st.write('')
           st.write('頭囲の治療前後の変化　', str(count), '人')
