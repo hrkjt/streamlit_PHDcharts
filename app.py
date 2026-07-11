@@ -84,7 +84,7 @@ fig.update_layout(height=900,width = 1600,  #16:9に、
                   title_text='患者数の推移',
                   xaxis = dict(type='date', dtick = 'M1'), # dtick: 1か月ごとは'M1'
                   yaxis = dict(title = '人数（1月あたり）', side = 'left', showgrid=False, # ２軸だと見誤る場合があるので目盛り線は表示させない(showgrid=False)
-                               range = [0, 520]),    # rangeで指定したほうがよい。ゼロが合わない場合などがある。
+                               range = [0, 600]),    # rangeで指定したほうがよい。ゼロが合わない場合などがある。
                   yaxis2 = dict(title = 'のべ患者数', side = 'right', overlaying = 'y', range = [0, max(df_fig['患者総数'])], showgrid=False),
                   bargap = 0.2,
                   barmode = 'stack',
