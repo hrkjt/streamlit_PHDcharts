@@ -320,6 +320,8 @@ def hist(parameter='短頭率', df_first=df_first):
   import plotly.graph_objects as go
   df_first = filter_metric_outliers(df_first, parameter)
   df_first = df_first.dropna(subset=[parameter])
+  if parameter == '二五平面短頭率':
+    df_first = df_first[df_first[parameter] > 90].copy()
   if df_first.empty:
     st.write(parameter + 'は外れ値除外後に表示できるデータがありません')
     return
@@ -327,7 +329,12 @@ def hist(parameter='短頭率', df_first=df_first):
   all_number = len(df_first['ダミーID'].unique())
 
   df_first[parameter] = pd.to_numeric(df_first[parameter], errors='coerce')
-  df_first[parameter] = df_first[parameter].round()
+  if parameter == '後頭部突出度':
+    bin_width = 0.1
+    df_first[parameter] = df_first[parameter].round(1)
+  else:
+    bin_width = 1
+    df_first[parameter] = df_first[parameter].round()
 
   df_first_tx = df_first[df_first['ダミーID'].isin(treated_patients)]
   tx_number = len(df_first_tx['ダミーID'].unique())
@@ -338,10 +345,16 @@ def hist(parameter='短頭率', df_first=df_first):
   all = []
   tx_rates=[]
 
-  min = int(df_first[parameter].min())
-  max_para = int(df_first[parameter].max())
+  if parameter == '後頭部突出度':
+    min = np.floor(df_first[parameter].min() * 10) / 10
+    max_para = np.ceil(df_first[parameter].max() * 10) / 10
+    x = np.round(np.arange(min, max_para + bin_width, bin_width), 1).tolist()
+  else:
+    min = int(df_first[parameter].min())
+    max_para = int(df_first[parameter].max())
+    x = list(range(min, max_para + 1))
 
-  for i in list(range(min, max_para)):
+  for i in x:
     tx_n = df_first_tx[df_first_tx[parameter] == i][parameter].count()
     all_n = df_first[df_first[parameter] == i][parameter].count()
     untx_n = all_n-tx_n
@@ -356,12 +369,10 @@ def hist(parameter='短頭率', df_first=df_first):
     all.append(round(all_n, 1)) #不要？
     tx_rates.append(rate)
 
-  x=list(range(min, max_para))
-
   y=[0, max(all)]
 
-  fig = go.Figure(go.Bar(x=x, y=treated, name='治療あり', marker_color='blue')) #opacity=0.8
-  fig.add_trace(go.Bar(x=x, y=untreated, name='治療なし',  marker_color='cyan', text=tx_rates)) #opacity=0.4
+  fig = go.Figure(go.Bar(x=x, y=treated, width=bin_width*0.9, name='治療あり', marker_color='blue')) #opacity=0.8
+  fig.add_trace(go.Bar(x=x, y=untreated, width=bin_width*0.9, name='治療なし',  marker_color='cyan', text=tx_rates)) #opacity=0.4
   fig.update_traces(textfont_size=12, textfont_color='black',
                     #textangle=0,
                     textposition="outside", cliponaxis=False)
