@@ -45,6 +45,23 @@ df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
 df = df.dropna()
 df = df.sort_values('月齢')
 
+OUTLIER_LIMITS = {
+    '後頭部突出度': (0, 20),
+    '二五平面短頭率': (70, 140),
+}
+
+def filter_metric_outliers(df, parameter, by_patient=False):
+    if parameter not in OUTLIER_LIMITS or parameter not in df.columns:
+        return df.copy()
+    lower, upper = OUTLIER_LIMITS[parameter]
+    df_filtered = df.copy()
+    df_filtered[parameter] = pd.to_numeric(df_filtered[parameter], errors='coerce')
+    inlier_mask = df_filtered[parameter].between(lower, upper, inclusive='both')
+    if by_patient and 'ダミーID' in df_filtered.columns:
+        outlier_ids = df_filtered.loc[~inlier_mask, 'ダミーID'].dropna().unique()
+        return df_filtered[~df_filtered['ダミーID'].isin(outlier_ids)].copy()
+    return df_filtered[inlier_mask].copy()
+
 df_h = pd.DataFrame(data['ヘルメット'])
 df_h = drop_invalid_dummy_id(df_h)
 df_h = df_h[(df_h['ダミーID'] != '') & (df_h['ヘルメット'] != '')]
@@ -301,6 +318,11 @@ df_h["クリニック"]          = df_h["ダミーID"].apply(map_clinic)
 #治療率ありでパラメータごとにヒストグラムを作成（go.Barを利用）
 def hist(parameter='短頭率', df_first=df_first):
   import plotly.graph_objects as go
+  df_first = filter_metric_outliers(df_first, parameter)
+  df_first = df_first.dropna(subset=[parameter])
+  if df_first.empty:
+    st.write(parameter + 'は外れ値除外後に表示できるデータがありません')
+    return
 
   all_number = len(df_first['ダミーID'].unique())
 
@@ -604,6 +626,11 @@ def graham(df, parameter, border=False, x_limit=False):
   )
 
   df_fig = df.copy()
+  df_fig = filter_metric_outliers(df_fig, parameter, by_patient=True)
+  df_fig = df_fig.dropna(subset=[parameter])
+  if df_fig.empty:
+    st.write(parameter + 'は外れ値除外後に表示できるデータがありません')
+    return
 
   df_age = pd.DataFrame()
   
@@ -830,7 +857,7 @@ def graham(df, parameter, border=False, x_limit=False):
   elif parameter == 'CI':
     min, max = 89, 109
   else:
-    min, max = df[parameter].min()-2, df[parameter].max()+2
+    min, max = df_fig[parameter].min()-2, df_fig[parameter].max()+2
 
   premargin = 0.5
   if max_sd0 > 0.5:
@@ -1127,6 +1154,11 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
 
     df1 = df1.copy()
     df2 = df2.copy()
+    df1 = filter_metric_outliers(df1, parameter, by_patient=True).dropna(subset=[parameter])
+    df2 = filter_metric_outliers(df2, parameter, by_patient=True).dropna(subset=[parameter])
+    if df1.empty or df2.empty:
+        st.write(parameter + 'は外れ値除外後に比較できるデータがありません')
+        return
 
     # 6分割サブプロット
     fig = make_subplots(
@@ -1377,7 +1409,8 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
     elif parameter == 'CI':
         y_min, y_max = 89, 109
     else:
-        y_min, y_max = df[parameter].min()-2, df[parameter].max()+2
+        df_range = pd.concat([df1[[parameter]], df2[[parameter]]])
+        y_min, y_max = df_range[parameter].min()-2, df_range[parameter].max()+2
 
     # x軸レンジの幅（全 age カテゴリの中で最大の span）
     range_max = 0
@@ -1625,6 +1658,11 @@ def animate(parameter, df0, df):
 
   df = pd.concat([df0, df1])
   df = df[df['ダミーID'].isin(common_patients)]
+  df = filter_metric_outliers(df, parameter, by_patient=True)
+  df = df.dropna(subset=[parameter])
+  if df.empty:
+    st.write(parameter + 'は外れ値除外後に表示できるデータがありません')
+    return
 
   #複数のヘルメットを使用している患者を除外
   df_helmet = df[df['ヘルメット'] != '経過観察']
@@ -1699,6 +1737,11 @@ def animate_hc(df0, df):
 
 def line_plot(parameter, df):
   df_fig = df.copy()
+  df_fig = filter_metric_outliers(df_fig, parameter, by_patient=True)
+  df_fig = df_fig.dropna(subset=[parameter])
+  if df_fig.empty:
+    st.write(parameter + 'は外れ値除外後に表示できるデータがありません')
+    return
   if '治療前の月齢' not in df_fig.columns:
     df_fig['初診時の月齢'] = df_fig['治療前月齢'].apply(lambda x: np.floor(x) if pd.notnull(x) else np.nan)
     symbol = '初診時の月齢'
@@ -1736,6 +1779,10 @@ def make_table(parameter, df, co = False):
     df_temp = df[df['ヘルメット'] != '経過観察']
   else:
     df_temp = df.copy()
+  df_temp = filter_metric_outliers(df_temp, parameter, by_patient=True)
+  df_temp = df_temp.dropna(subset=[parameter])
+  if df_temp.empty:
+    return pd.DataFrame()
   df_temp = df_temp.sort_values('月齢')
   df_temp = df_temp[['ダミーID', '月齢', parameter, '治療前の月齢', levels[parameter], 'ヘルメット']]
   df_before = df_temp.drop_duplicates('ダミーID', keep='first')
@@ -1797,6 +1844,11 @@ def make_table(parameter, df, co = False):
   return (result)
 
 def make_confusion_matrix(df, parameter):
+    df = filter_metric_outliers(df, parameter, by_patient=True)
+    df = df.dropna(subset=[parameter])
+    if df.empty:
+        return pd.DataFrame()
+
     # パラメータ → 重症度カテゴリ名
     parameter_category_names = {
         '短頭率': '短頭症',
