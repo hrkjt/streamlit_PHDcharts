@@ -22,7 +22,11 @@ import re
 
 import itertools
 
-url = st.secrets["API_URL"]
+API_URL = "https://script.google.com/macros/s/AKfycby3oyGaFq8X_JkxOFUB_QrXccegZs4kNpIZvSSt6Dtx9poU8pEf_rQEvLFQzK-OlmX0/exec"
+try:
+    url = st.secrets["API_URL"]
+except Exception:
+    url = API_URL
 
 response = requests.get(url)
 data = response.json()
@@ -36,7 +40,7 @@ def drop_invalid_dummy_id(df):
 df = pd.DataFrame(data['経過'])
 df = drop_invalid_dummy_id(df)
 
-parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI']
+parameters = ['月齢', '前後径', '左右径', '頭囲', '短頭率', '前頭部対称率', 'CA', '後頭部対称率', 'CVAI', 'CI', '後頭部突出度', '二五平面短頭率']
 df[parameters] = df[parameters].apply(pd.to_numeric, errors='coerce')
 df = df.dropna()
 df = df.sort_values('月齢')
@@ -108,6 +112,8 @@ df_tx_pre_last['治療前月齢'] = df_tx_pre_last['月齢']
 category_orders={'治療前PSRレベル':['レベル1', 'レベル2', 'レベル3', 'レベル4'],
                    '治療前ASRレベル':['レベル1', 'レベル2', 'レベル3', 'レベル4'],
                    '治療前短頭症':['重症', '中等症', '軽症', '正常', '長頭'],
+                   '治療前二五平面短頭症':['重症', '中等症', '軽症', '正常', '長頭'],
+                   '治療前後頭部突出度重症度':['重症', '中等症', '軽症', '正常'],
                    '治療前CA重症度':['正常', '軽症', '中等症', '重症', '最重症'],
                    '治療前CVAI重症度':['正常', '軽症', '中等症', '重症', '最重症'],
                    '治療前の月齢':[i for i in range(15)],
@@ -145,6 +151,18 @@ def add_pre_levels(df):
   df['治療前短頭症'] = df['治療前短頭症'].mask(df['短頭率']<103, '中等症')
   df['治療前短頭症'] = df['治療前短頭症'].mask(df['短頭率']<100, '重症')
 
+  df['治療前二五平面短頭症'] = ''
+  df['治療前二五平面短頭症'] = df['治療前二五平面短頭症'].mask(df['二五平面短頭率']>126, '長頭')
+  df['治療前二五平面短頭症'] = df['治療前二五平面短頭症'].mask(df['二五平面短頭率']<=126, '正常')
+  df['治療前二五平面短頭症'] = df['治療前二五平面短頭症'].mask(df['二五平面短頭率']<106, '軽症')
+  df['治療前二五平面短頭症'] = df['治療前二五平面短頭症'].mask(df['二五平面短頭率']<103, '中等症')
+  df['治療前二五平面短頭症'] = df['治療前二五平面短頭症'].mask(df['二五平面短頭率']<100, '重症')
+
+  df['治療前後頭部突出度重症度'] = '正常'
+  df['治療前後頭部突出度重症度'] = df['治療前後頭部突出度重症度'].mask(df['後頭部突出度']<5.4, '軽症')
+  df['治療前後頭部突出度重症度'] = df['治療前後頭部突出度重症度'].mask(df['後頭部突出度']<4.9, '中等症')
+  df['治療前後頭部突出度重症度'] = df['治療前後頭部突出度重症度'].mask(df['後頭部突出度']<4.4, '重症')
+
   return(df)
 
 def add_post_levels(df):
@@ -179,6 +197,18 @@ def add_post_levels(df):
   df['最終短頭症'] = df['最終短頭症'].mask(df['短頭率']<103, '中等症')
   df['最終短頭症'] = df['最終短頭症'].mask(df['短頭率']<100, '重症')
 
+  df['最終二五平面短頭症'] = ''
+  df['最終二五平面短頭症'] = df['最終二五平面短頭症'].mask(df['二五平面短頭率']>126, '長頭')
+  df['最終二五平面短頭症'] = df['最終二五平面短頭症'].mask(df['二五平面短頭率']<=126, '正常')
+  df['最終二五平面短頭症'] = df['最終二五平面短頭症'].mask(df['二五平面短頭率']<106, '軽症')
+  df['最終二五平面短頭症'] = df['最終二五平面短頭症'].mask(df['二五平面短頭率']<103, '中等症')
+  df['最終二五平面短頭症'] = df['最終二五平面短頭症'].mask(df['二五平面短頭率']<100, '重症')
+
+  df['最終後頭部突出度重症度'] = '正常'
+  df['最終後頭部突出度重症度'] = df['最終後頭部突出度重症度'].mask(df['後頭部突出度']<5.4, '軽症')
+  df['最終後頭部突出度重症度'] = df['最終後頭部突出度重症度'].mask(df['後頭部突出度']<4.9, '中等症')
+  df['最終後頭部突出度重症度'] = df['最終後頭部突出度重症度'].mask(df['後頭部突出度']<4.4, '重症')
+
   return(df)
 
 df_tx_pre_last = add_pre_levels(df_tx_pre_last)
@@ -197,7 +227,7 @@ df_period = df_tx_post[['ダミーID', '治療期間']]
 df_tx_pre_last['治療期間'] = 0
 
 #df_tx_post = pd.merge(df_tx_post, df_tx_pre_last[['ダミーID']+list(category_orders.keys())], on='ダミーID', how='left')
-df_tx_post = pd.merge(df_tx_post, df_tx_pre_last[['ダミーID','治療前PSRレベル', '治療前ASRレベル', '治療前短頭症', '治療前CA重症度', '治療前CVAI重症度']], on='ダミーID', how='left')
+df_tx_post = pd.merge(df_tx_post, df_tx_pre_last[['ダミーID','治療前PSRレベル', '治療前ASRレベル', '治療前短頭症', '治療前二五平面短頭症', '治療前後頭部突出度重症度', '治療前CA重症度', '治療前CVAI重症度']], on='ダミーID', how='left')
 
 df_tx_pre_post = pd.concat([df_tx_pre_last, df_tx_post])
 
@@ -207,12 +237,12 @@ df_tx_post_last = df_tx_post.drop_duplicates('ダミーID', keep='last')
 
 df_tx_post_last = add_post_levels(df_tx_post_last)
 
-df_tx_pre_post = pd.merge(df_tx_pre_post, df_tx_post_last[['ダミーID','最終PSRレベル', '最終ASRレベル', '最終短頭症', '最終CA重症度', '最終CVAI重症度']], on='ダミーID', how='left')
+df_tx_pre_post = pd.merge(df_tx_pre_post, df_tx_post_last[['ダミーID','最終PSRレベル', '最終ASRレベル', '最終短頭症', '最終二五平面短頭症', '最終後頭部突出度重症度', '最終CA重症度', '最終CVAI重症度']], on='ダミーID', how='left')
 
 #経過観察
 df_first = add_pre_levels(df_first)
 #df_pre_age = df_first[['ダミーID', '月齢']+list(category_orders.keys())]
-df_pre_age = df_first[['ダミーID', '月齢', '治療前PSRレベル', '治療前ASRレベル', '治療前短頭症', '治療前CA重症度', '治療前CVAI重症度']]
+df_pre_age = df_first[['ダミーID', '月齢', '治療前PSRレベル', '治療前ASRレベル', '治療前短頭症', '治療前二五平面短頭症', '治療前後頭部突出度重症度', '治療前CA重症度', '治療前CVAI重症度']]
 df_pre_age = df_pre_age.rename(columns = {'月齢':'治療前月齢'})
 
 df_co = pd.merge(df, df_pre_age, on='ダミーID', how='left')
@@ -314,7 +344,8 @@ def hist(parameter='短頭率', df_first=df_first):
                     #textangle=0,
                     textposition="outside", cliponaxis=False)
 
-  if parameter == '短頭率':
+  limits = []
+  if parameter in ['短頭率', '二五平面短頭率']:
     limits=list({106, 126} & set(x))
   elif parameter in ['前頭部対称率', '後頭部対称率']:
     limits=list({80, 85, 90} & set(x))
@@ -324,6 +355,8 @@ def hist(parameter='短頭率', df_first=df_first):
     limits=list({5, 7, 10, 14} & set(x))
   elif parameter == 'CI':
     limits=list({80, 94, 101} & set(x))
+  elif parameter == '後頭部突出度':
+    limits=[4.4, 4.9, 5.4]
 
   for i in range(len(limits)):
     #fig.add_trace(go.Line(x=[limits[i],limits[i]], y=y, mode='lines', marker_color='pink', line=dict(dash='dot'), name=str(limits[i])))
@@ -595,18 +628,27 @@ def graham(df, parameter, border=False, x_limit=False):
   df_fig = df_fig.sort_values('月齢')  #不要？
   df_fig = df_fig.drop_duplicates('ダミーID', keep='last')
 
-  severities = {'後頭部対称率':'治療前PSRレベル', '前頭部対称率':'治療前ASRレベル', 'CA':'治療前CA重症度', 'CVAI':'治療前CVAI重症度', '短頭率':'治療前短頭症', 'CI':'治療前短頭症'}
-  severities = severities[parameter]
+  severities = {'後頭部対称率':'治療前PSRレベル', '前頭部対称率':'治療前ASRレベル', 'CA':'治療前CA重症度', 'CVAI':'治療前CVAI重症度', '短頭率':'治療前短頭症', 'CI':'治療前短頭症', '二五平面短頭率':'治療前二五平面短頭症', '後頭部突出度':'治療前後頭部突出度重症度'}
+  if parameter in severities:
+    severities = severities[parameter]
+  else:
+    severities = '治療前分類'
+    df_fig[severities] = '全体'
+    df_pre[severities] = '全体'
 
-  parameter_names = {'後頭部対称率':'PSR', '前頭部対称率':'ASR', 'CA':'CA', 'CVAI':'CVAI', '短頭率':'BI', 'CI':'CI'}
+  parameter_names = {'後頭部対称率':'PSR', '前頭部対称率':'ASR', 'CA':'CA', 'CVAI':'CVAI', '短頭率':'BI', 'CI':'CI', '二五平面短頭率':'25BI', '後頭部突出度':'OP'}
   parameter_name = parameter_names[parameter]
 
   if parameter in ['後頭部対称率', '前頭部対称率']:
     levels = ['レベル1', 'レベル2', 'レベル3', 'レベル4']
   elif parameter in ['CA', 'CVAI']:
     levels = ['軽症', '中等症', '重症', '最重症']
-  else:
+  elif parameter in ['短頭率', 'CI', '二五平面短頭率']:
     levels = ['軽症', '中等症', '重症']
+  elif parameter == '後頭部突出度':
+    levels = ['重症', '中等症', '軽症', '正常']
+  else:
+    levels = ['全体']
 
   line_colors = ['blue', 'green', 'black', 'red', 'purple']
   #line_colors = ['rgb(150,150,150)', 'rgb(100,100,100)', 'rgb(50,50,50)', 'black']
@@ -733,8 +775,11 @@ def graham(df, parameter, border=False, x_limit=False):
       elif parameter == 'CA':
         upper_border = 6
         lower_border = False
-      elif parameter == 'CI':
+      elif parameter in ['CI', '二五平面短頭率']:
         upper_border = 94
+        lower_border = False
+      elif parameter == '後頭部突出度':
+        upper_border = 5.4
         lower_border = False
       else:
         upper_border = 90
@@ -742,15 +787,16 @@ def graham(df, parameter, border=False, x_limit=False):
 
 
       #CVAI = 6.25
-      d = go.Scatter(mode='lines',
-                    x=[0, 25],
-                      y=[upper_border]*2,
-                      line=dict(color = 'black', dash='dot'),
-                      showlegend=False,
-                      #name='CVAI=5%'
-                      )
-      #fig.append_trace(d, 1, i)
-      fig.add_trace(d, row=1, col=i)
+      if upper_border:
+        d = go.Scatter(mode='lines',
+                      x=[0, 25],
+                        y=[upper_border]*2,
+                        line=dict(color = 'black', dash='dot'),
+                        showlegend=False,
+                        #name='CVAI=5%'
+                        )
+        #fig.append_trace(d, 1, i)
+        fig.add_trace(d, row=1, col=i)
 
       if lower_border:
         #CVAI = 3.5
@@ -779,10 +825,12 @@ def graham(df, parameter, border=False, x_limit=False):
   elif parameter == '後頭部対称率':
     min, max = 60, 100
 
-  elif parameter == '短頭率':
+  elif parameter in ['短頭率', '二五平面短頭率']:
     min, max = 94, 114
-  else:  #CI？
+  elif parameter == 'CI':
     min, max = 89, 109
+  else:
+    min, max = df[parameter].min()-2, df[parameter].max()+2
 
   premargin = 0.5
   if max_sd0 > 0.5:
@@ -1077,6 +1125,9 @@ def graham_hc(df, border=False, x_limit=False):
 def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
                    border=False, x_limit=False):
 
+    df1 = df1.copy()
+    df2 = df2.copy()
+
     # 6分割サブプロット
     fig = make_subplots(
         rows=1, cols=6,
@@ -1091,7 +1142,9 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         'CA':'治療前CA重症度',
         'CVAI':'治療前CVAI重症度',
         '短頭率':'治療前短頭症',
-        'CI':'治療前短頭症'
+        'CI':'治療前短頭症',
+        '二五平面短頭率':'治療前二五平面短頭症',
+        '後頭部突出度':'治療前後頭部突出度重症度'
     }
     parameter_names = {
         '後頭部対称率':'PSR',
@@ -1099,10 +1152,17 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         'CA':'CA',
         'CVAI':'CVAI',
         '短頭率':'BI',
-        'CI':'CI'
+        'CI':'CI',
+        '二五平面短頭率':'25BI',
+        '後頭部突出度':'OP'
     }
 
-    severity_col = severities_map[parameter]
+    if parameter in severities_map:
+        severity_col = severities_map[parameter]
+    else:
+        severity_col = '治療前分類'
+        df1[severity_col] = '全体'
+        df2[severity_col] = '全体'
     parameter_name = parameter_names[parameter]
 
     # パラメータ別に「重症度レベルの集合」を定義
@@ -1110,8 +1170,12 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         levels = ['レベル1', 'レベル2', 'レベル3', 'レベル4']
     elif parameter in ['CA', 'CVAI']:
         levels = ['軽症', '中等症', '重症', '最重症']
-    else:
+    elif parameter in ['短頭率', 'CI', '二五平面短頭率']:
         levels = ['軽症', '中等症', '重症']
+    elif parameter == '後頭部突出度':
+        levels = ['重症', '中等症', '軽症', '正常']
+    else:
+        levels = ['全体']
 
     # レベルごとの色
     base_colors = ['blue', 'green', 'black', 'red', 'purple']
@@ -1265,23 +1329,27 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
             elif parameter == 'CA':
                 upper_border = 6
                 lower_border = False
-            elif parameter == 'CI':
+            elif parameter in ['CI', '二五平面短頭率']:
                 upper_border = 94
+                lower_border = False
+            elif parameter == '後頭部突出度':
+                upper_border = 5.4
                 lower_border = False
             else:
                 upper_border = 90
                 lower_border = False
 
-            fig.add_trace(
-                go.Scatter(
-                    mode='lines',
-                    x=[0, 25],
-                    y=[upper_border, upper_border],
-                    line=dict(color='black', dash='dot'),
-                    showlegend=False
-                ),
-                row=1, col=col_idx
-            )
+            if upper_border:
+                fig.add_trace(
+                    go.Scatter(
+                        mode='lines',
+                        x=[0, 25],
+                        y=[upper_border, upper_border],
+                        line=dict(color='black', dash='dot'),
+                        showlegend=False
+                    ),
+                    row=1, col=col_idx
+                )
 
             if lower_border:
                 fig.add_trace(
@@ -1304,10 +1372,12 @@ def graham_compare(df1, df2, parameter, label1='Group1', label2='Group2',
         y_min, y_max = 70, 100
     elif parameter == '後頭部対称率':
         y_min, y_max = 60, 100
-    elif parameter == '短頭率':
+    elif parameter in ['短頭率', '二五平面短頭率']:
         y_min, y_max = 94, 114
-    else:  # CI
+    elif parameter == 'CI':
         y_min, y_max = 89, 109
+    else:
+        y_min, y_max = df[parameter].min()-2, df[parameter].max()+2
 
     # x軸レンジの幅（全 age カテゴリの中で最大の span）
     range_max = 0
@@ -1528,9 +1598,13 @@ levels = {'短頭率':'治療前短頭症',
           'CA':'治療前CA重症度',
           '後頭部対称率':'治療前PSRレベル',
           'CVAI':'治療前CVAI重症度',
-          'CI':'治療前短頭症'}
+          'CI':'治療前短頭症',
+          '二五平面短頭率':'治療前二五平面短頭症',
+          '後頭部突出度':'治療前後頭部突出度重症度'}
 
 borders = {'短頭率':[106, 106],
+          '二五平面短頭率':[106, 106],
+          '後頭部突出度':[5.4, 5.4],
           '前頭部対称率':[90, 90],
           'CA':[6, 6],
           '後頭部対称率':[90, 90],
@@ -1634,7 +1708,7 @@ def line_plot(parameter, df):
   too_young = df_fig[df_fig['月齢'] < 0]['ダミーID'].unique()
   df_fig = df_fig[~df_fig['ダミーID'].isin(too_young)]
 
-  if parameter == '頭囲':
+  if parameter == '頭囲' or parameter not in levels:
     fig = px.line(df_fig, x='月齢', y=parameter, line_group='ダミーID')
   else:
     fig = px.line(df_fig, x='月齢', y=parameter, line_group='ダミーID', color=levels[parameter], symbol = symbol, category_orders=category_orders, color_discrete_sequence=colors)
@@ -1726,6 +1800,8 @@ def make_confusion_matrix(df, parameter):
     # パラメータ → 重症度カテゴリ名
     parameter_category_names = {
         '短頭率': '短頭症',
+        '二五平面短頭率': '二五平面短頭症',
+        '後頭部突出度': '後頭部突出度重症度',
         '前頭部対称率': 'ASRレベル',
         'CA': 'CA重症度',
         '後頭部対称率': 'PSRレベル',
@@ -2601,12 +2677,13 @@ if submit_button:
               st.write(parameter+'の治療前後の変化（1か月以上の治療）')
               graham(df_table, parameter)
             
-              result = make_confusion_matrix(df_table, parameter)
-              st.dataframe(result, width=800)
-              
-              result = make_table(parameter, df_table)
-              #st.table(result)
-              st.dataframe(result, width=800)
+              if parameter in levels:
+                result = make_confusion_matrix(df_table, parameter)
+                st.dataframe(result, width=800)
+                
+                result = make_table(parameter, df_table)
+                #st.table(result)
+                st.dataframe(result, width=800)
               st.markdown("---")
 
           else:
@@ -2672,10 +2749,11 @@ if submit_button:
             st.write('')
             st.write(parameter+'の治療前後の変化　', str(count), '人')
             graham(filtered_df_tx_pre_post, parameter, x_limit=max_value)
-            result = make_confusion_matrix(filtered_df_tx_pre_post, parameter)
-            st.dataframe(result, width=800)
-            result = make_table(parameter, filtered_df_tx_pre_post)
-            st.dataframe(result, width=800)
+            if parameter in levels:
+              result = make_confusion_matrix(filtered_df_tx_pre_post, parameter)
+              st.dataframe(result, width=800)
+              result = make_table(parameter, filtered_df_tx_pre_post)
+              st.dataframe(result, width=800)
             st.markdown("---")
     
             if filter_pass0:
@@ -2685,10 +2763,11 @@ if submit_button:
               st.write('')
               st.write(parameter+'の治療前後の変化(アイメット)　', str(count), '人')
               graham(filtered_df_helmet, parameter, x_limit=max_value)
-              result = make_confusion_matrix(filtered_df_helmet, parameter)
-              st.dataframe(result, width=800)
-              result = make_table(parameter, filtered_df_helmet)
-              st.dataframe(result, width=800)
+              if parameter in levels:
+                result = make_confusion_matrix(filtered_df_helmet, parameter)
+                st.dataframe(result, width=800)
+                result = make_table(parameter, filtered_df_helmet)
+                st.dataframe(result, width=800)
               st.markdown("---")
     
             if filter_pass1:
@@ -2698,10 +2777,11 @@ if submit_button:
               st.write('')
               st.write(parameter+'の治療前後の変化(クルム)　', str(count), '人')
               graham(filtered_df_helmet, parameter, x_limit=max_value)
-              result = make_confusion_matrix(filtered_df_helmet, parameter)
-              st.dataframe(result, width=800)
-              result = make_table(parameter, filtered_df_helmet)
-              st.dataframe(result, width=800)
+              if parameter in levels:
+                result = make_confusion_matrix(filtered_df_helmet, parameter)
+                st.dataframe(result, width=800)
+                result = make_table(parameter, filtered_df_helmet)
+                st.dataframe(result, width=800)
               st.markdown("---")
     
             if filter_pass2:
@@ -2711,10 +2791,11 @@ if submit_button:
               st.write('')
               st.write(parameter+'の治療前後の変化(クルムフィット)　', str(count), '人')
               graham(filtered_df_helmet, parameter, x_limit=max_value)
-              result = make_confusion_matrix(filtered_df_helmet, parameter)
-              st.dataframe(result, width=800)
-              result = make_table(parameter, filtered_df_helmet)
-              st.dataframe(result, width=800)
+              if parameter in levels:
+                result = make_confusion_matrix(filtered_df_helmet, parameter)
+                st.dataframe(result, width=800)
+                result = make_table(parameter, filtered_df_helmet)
+                st.dataframe(result, width=800)
               st.markdown("---")
         else:
           count = len(filtered_df_tx_pre_post['ダミーID'].unique())
@@ -2776,12 +2857,13 @@ if submit_button:
     
             graham(filtered_df_co, parameter)
             
-            result = make_confusion_matrix(filtered_df_co, parameter)
-            st.dataframe(result, width=800)
-            
-            result = make_table(parameter, filtered_df_co, co = True)
-            #st.table(result)
-            st.dataframe(result, width=800)
+            if parameter in levels:
+              result = make_confusion_matrix(filtered_df_co, parameter)
+              st.dataframe(result, width=800)
+              
+              result = make_table(parameter, filtered_df_co, co = True)
+              #st.table(result)
+              st.dataframe(result, width=800)
             st.markdown("---")
 
     if filter_pass0 and filter_pass1:
